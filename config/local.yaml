@@ -1,0 +1,16 @@
+app:
+  filePath: /tmp/srv
+  host: 0.0.0.0
+  redisPort: 9999
+  upload:
+    port: 8070
+    buckets:
+      - pics
+      - docs
+      - backup
+  serve:
+    port: 8080
+  manage: 
+    port: 8060
+    maxKeys: 10
+    defaultKeyLife: 24h

@@ -11,6 +11,7 @@ import (
   tea "github.com/charmbracelet/bubbletea"
   bm "github.com/charmbracelet/wish/bubbletea"
   "github.com/charmbracelet/wish"
+  "github.com/charmbracelet/wish/scp"
   "github.com/gliderlabs/ssh"
 )
 
@@ -74,6 +75,7 @@ func main() {
   log.Printf("startup")
   teaOptions := []tea.ProgramOption{tea.WithAltScreen(),tea.WithOutput(os.Stderr)}
   addr := "0.0.0.0:8007"
+  fileHandler := scp.NewFileSystemHandler("/tmp/srv")
   server, err := wish.NewServer(
     wish.WithAddress(addr),
     wish.WithIdleTimeout(10*time.Minute),
@@ -92,6 +94,7 @@ func main() {
         }
         return Foo{17}, teaOptions
       }),
+      scp.Middleware(fileHandler, fileHandler),
     ),
   )
 
