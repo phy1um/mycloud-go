@@ -1,7 +1,7 @@
 app:
-  filePath: /tmp/srv
+  filePath: /tmp/srv/
   host: 0.0.0.0
-  redisPort: 9999
+  dbFile: /tmp/tmp.db
   authorizedKeys:
     - "/tmp/ssh/id_ed25519.pub"
     - "~/.ssh/id_ed25519.pub"
@@ -19,3 +19,5 @@ app:
     port: 8060
     maxKeys: 10
     defaultKeyLife: 24h
+meta:
+  version: 0.0.0

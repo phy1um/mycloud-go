@@ -15,7 +15,7 @@ manage:
 
 .PHONY: serve 
 serve:
-	go build -O bin/server-service ./cmd/serve 
+	go build -v -o bin/server-service ./cmd/serve 
 
 .PHONY: build
 build: upload manage serve

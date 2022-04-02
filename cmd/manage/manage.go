@@ -8,9 +8,12 @@ import (
 	"sshtest/cmd"
 	"sshtest/config"
 	"sshtest/internal"
+	"sshtest/internal/tui"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/wish"
 	bm "github.com/charmbracelet/wish/bubbletea"
+	"github.com/gliderlabs/ssh"
 )
 
 func main() {
@@ -33,7 +36,7 @@ func main() {
 		cfg.App,
 		wish.WithAddress(addr),
 		wish.WithMiddleware(
-			bm.Middleware(internal.MakeFolderHandler(cfg.App.FilePath)),
+			bm.Middleware(MakeFolderHandler(cfg.App)),
 		),
 	)
 
@@ -51,4 +54,17 @@ func main() {
 	}
 
 	os.Exit(0)
+}
+
+func MakeFolderHandler(cfg *config.AppConfig) func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+		_, _, active := s.Pty()
+		if !active {
+			fmt.Println("no active terminal, skipping")
+			return nil, nil
+		}
+
+		m := tui.NewState(cfg)
+		return m, []tea.ProgramOption{tea.WithAltScreen()}
+	}
 }

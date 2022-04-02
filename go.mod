@@ -1,11 +1,14 @@
 module sshtest
 
-go 1.17
+go 1.18
 
 require (
 	github.com/charmbracelet/bubbletea v0.20.0
 	github.com/charmbracelet/wish v0.3.0
 	github.com/gliderlabs/ssh v0.3.3
+	github.com/jmoiron/sqlx v1.3.4
+	github.com/mattn/go-sqlite3 v1.14.12
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -25,5 +28,4 @@ require (
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
