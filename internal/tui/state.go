@@ -21,6 +21,7 @@ type State struct {
 	viewStack []View
 	db        *sqlx.DB
 	cfg       *config.AppConfig
+	done      bool
 }
 
 func NewState(cfg *config.AppConfig) *State {
@@ -39,22 +40,29 @@ func (s *State) Init() tea.Cmd {
 
 	s.db = db
 
-	dir, err := ioutil.ReadDir(s.cfg.FilePath)
-	if err != nil {
-		fmt.Println("failed to read path")
-	}
+	go func() {
+		dir, err := ioutil.ReadDir(s.cfg.FilePath)
+		if err != nil {
+			fmt.Println("failed to read path")
+		}
 
-	baseView := fileView{
-		files:  dir,
-		cursor: 0,
-	}
+		baseView := fileView{
+			files:  dir,
+			cursor: 0,
+		}
 
-	s.PushView(baseView)
+		s.PushView(baseView)
+	}()
 
 	return nil
 }
 
 func (s *State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
+	if s.done {
+		return s, tea.Quit
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -67,6 +75,11 @@ func (s *State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return s, tea.Quit
 		}
 	}
+
+	if len(s.viewStack) == 0 {
+		return s, nil
+	}
+
 	top := s.Top()
 	newTop, cmd := top.Update(msg, s)
 	if newTop != nil {
@@ -91,6 +104,9 @@ func (s *State) PushView(v View) {
 func (s *State) PopView() {
 	s.Top().Exit()
 	s.viewStack = s.viewStack[:len(s.viewStack)-1]
+	if len(s.viewStack) == 0 {
+		s.done = true
+	}
 }
 
 func (s *State) Top() View {

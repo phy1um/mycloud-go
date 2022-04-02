@@ -4,11 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"sshtest/cmd"
 	"sshtest/config"
 	"sshtest/internal"
 	"sshtest/internal/tui"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/wish"
@@ -18,6 +20,8 @@ import (
 
 func main() {
 	log.Println("start upload service")
+
+	rand.Seed(time.Now().UnixNano())
 
 	configPath := flag.String("c", "./config/local.yaml", "path to load config")
 	flag.Parse()
