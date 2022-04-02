@@ -31,13 +31,25 @@ func (c createKey) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "x", "enter":
+		case "enter":
 			key, err := makeKeyInternal(c.path, c.duration, st.db)
 			st.PopView()
 			st.PushView(createStatusView{
 				key: key,
 				err: err,
 			})
+		case "j", "down":
+			return createKey{
+				path:     c.path,
+				duration: c.duration - time.Hour,
+				back:     c.back,
+			}, nil
+		case "k", "up":
+			return createKey{
+				path:     c.path,
+				duration: c.duration + time.Hour,
+				back:     c.back,
+			}, nil
 		}
 	}
 	return nil, nil
