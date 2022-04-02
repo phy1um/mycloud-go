@@ -20,12 +20,13 @@ type ManageConfig struct {
 }
 
 type AppConfig struct {
-	FilePath string        `yaml:"filePath"`
-	Host     string        `yaml:"host"`
-	Keys     []string      `yaml:"keys"`
-	Upload   *UploadConfig `yaml:"upload"`
-	Serve    *ServeConfig  `yaml:"serve"`
-	Manage   *ManageConfig `yaml:"manage"`
+	FilePath           string        `yaml:"filePath"`
+	Host               string        `yaml:"host"`
+	HostKeys           []string      `yaml:"hostKeys"`
+	AuthorizedKeyFiles []string      `yaml:"authorizedKeys"`
+	Upload             *UploadConfig `yaml:"upload"`
+	Serve              *ServeConfig  `yaml:"serve"`
+	Manage             *ManageConfig `yaml:"manage"`
 }
 
 type Config struct {
