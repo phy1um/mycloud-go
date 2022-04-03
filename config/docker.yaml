@@ -1,11 +1,11 @@
 app:
-  filePath: /tmp/srv/
+  filePath: /srv/store
   host: 0.0.0.0
-  dbFile: /tmp/tmp.db
+  dbFile: /srv/db/sql.db
   authorizedKeys:
-    - "/tmp/ssh/id_ed25519.pub"
+    - "/srv/keys/id_ed25519.pub"
   hostKeys:
-    - "/tmp/ssh/id_foo"
+    - "/srv/id_host"
   upload:
     port: 8070
     buckets:

@@ -20,14 +20,14 @@ type ManageConfig struct {
 }
 
 type AppConfig struct {
-	FilePath           string        `yaml:"filePath"`
-	Host               string        `yaml:"host"`
-	DBFile             string        `yaml:"dbFile"`
-	HostKeys           []string      `yaml:"hostKeys"`
-	AuthorizedKeyFiles []string      `yaml:"authorizedKeys"`
-	Upload             *UploadConfig `yaml:"upload"`
-	Serve              *ServeConfig  `yaml:"serve"`
-	Manage             *ManageConfig `yaml:"manage"`
+	FilePath           string       `yaml:"filePath"`
+	Host               string       `yaml:"host"`
+	DBFile             string       `yaml:"dbFile"`
+	HostKeys           []string     `yaml:"hostKeys"`
+	AuthorizedKeyFiles []string     `yaml:"authorizedKeys"`
+	Upload             UploadConfig `yaml:"upload"`
+	Serve              ServeConfig  `yaml:"serve"`
+	Manage             ManageConfig `yaml:"manage"`
 }
 
 type Metadata struct {
@@ -35,8 +35,8 @@ type Metadata struct {
 }
 
 type Config struct {
-	App  *AppConfig `yaml:"app"`
-	Meta *Metadata  `yaml:"meta"`
+	App  AppConfig `yaml:"app"`
+	Meta Metadata  `yaml:"meta"`
 }
 
 func Load(path string) (*Config, error) {

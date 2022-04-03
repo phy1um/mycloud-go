@@ -26,19 +26,20 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("loaded config: %v", cfg)
+	log.Printf("loaded config: %+v\n", cfg)
 
 	addr := fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Upload.Port)
 	fileHandler := scp.NewFileSystemHandler(cfg.App.FilePath)
 
 	opts := internal.ServerOpts(
-		cfg.App,
+		&cfg.App,
 		wish.WithAddress(addr),
 		wish.WithMiddleware(
 			scp.Middleware(fileHandler, fileHandler),
 		),
 	)
 
+	log.Printf("creating server @ %s\n", addr)
 	server, err := wish.NewServer(opts...)
 
 	if err != nil {

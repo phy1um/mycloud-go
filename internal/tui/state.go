@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"sshtest/config"
+	"sshtest/internal/data"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/jmoiron/sqlx"
@@ -39,6 +40,12 @@ func (s *State) Init() tea.Cmd {
 	}
 
 	s.db = db
+
+	err = data.Migrate(db)
+	if err != nil {
+		log.Printf("failed to run migrate: %s", err.Error())
+		return tea.Quit
+	}
 
 	go func() {
 		dir, err := ioutil.ReadDir(s.cfg.FilePath)

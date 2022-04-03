@@ -1,0 +1,51 @@
+
+services:
+  upload:
+    build: ./cmd/upload/Dockerfile
+    image: sshtest
+    ports:
+      - "8070:8070"
+    command: ["upload", "-c", "/config/docker.yaml"]
+    volumes:
+      - id_keys:/srv/keys
+      - sqlite:/srv/db
+      - buckets:/srv/store
+  manage:
+    build: ./cmd/upload/Dockerfile
+    image: sshtest
+    ports:
+      - "8060:8060"
+    command: ["manage", "-c", "/config/docker.yaml"]
+    volumes:
+      - id_keys:/srv/keys
+      - sqlite:/srv/db
+      - buckets:/srv/store
+  serve:
+    build: ./cmd/upload/Dockerfile
+    image: sshtest
+    ports:
+      - "8080:8080"
+    command: ["server", "-c", "/config/docker.yaml"]
+    volumes:
+      - id_keys:/srv/keys
+      - sqlite:/srv/db
+      - buckets:/srv/store
+volumes:
+  id_keys:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /home/tom/workspace/go/sshtest/tmp/keys
+  sqlite:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /home/tom/workspace/go/sshtest/tmp/db
+  buckets:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /home/tom/workspace/go/sshtest/tmp/bucket

@@ -32,15 +32,15 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("loaded config: %v\n", cfg)
+	log.Printf("loaded config: %+v\n", cfg)
 
 	addr := fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Manage.Port)
 
 	opts := internal.ServerOpts(
-		cfg.App,
+		&cfg.App,
 		wish.WithAddress(addr),
 		wish.WithMiddleware(
-			bm.Middleware(MakeFolderHandler(cfg.App)),
+			bm.Middleware(MakeFolderHandler(&cfg.App)),
 		),
 	)
 
