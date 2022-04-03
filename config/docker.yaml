@@ -1,5 +1,5 @@
 app:
-  filePath: /srv/store
+  filePath: /srv/store/
   host: 0.0.0.0
   dbFile: /srv/db/sql.db
   authorizedKeys:

@@ -44,7 +44,6 @@ func (s *State) Init() tea.Cmd {
 	err = data.Migrate(db)
 	if err != nil {
 		log.Printf("failed to run migrate: %s", err.Error())
-		return tea.Quit
 	}
 
 	go func() {
