@@ -6,6 +6,7 @@ require (
 	github.com/charmbracelet/bubbletea v0.20.0
 	github.com/charmbracelet/wish v0.3.0
 	github.com/gliderlabs/ssh v0.3.3
+	github.com/google/uuid v1.3.0
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/mattn/go-sqlite3 v1.14.12
 	gopkg.in/yaml.v2 v2.4.0

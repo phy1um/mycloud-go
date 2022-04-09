@@ -6,17 +6,14 @@ app:
     - "/tmp/ssh/id_ed25519.pub"
   hostKeys:
     - "/tmp/ssh/id_foo"
-  upload:
+  manage:
     port: 8070
+    defaultKeyLife: 24h
     buckets:
       - pics
       - docs
       - backup
   serve:
     port: 8080
-  manage: 
-    port: 8060
-    maxKeys: 10
-    defaultKeyLife: 24h
 meta:
   version: 0.0.0

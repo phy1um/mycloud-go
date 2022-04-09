@@ -2,21 +2,19 @@ package config
 
 import (
 	"io/ioutil"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
-
-type UploadConfig struct {
-	Port    int      `yaml:"port"`
-	Buckets []string `yaml:"buckets"`
-}
 
 type ServeConfig struct {
 	Port int `yaml:"port"`
 }
 
 type ManageConfig struct {
-	Port int `yaml:"port"`
+	Port               int           `yaml:"port"`
+	Buckets            []string      `yaml:"buckets"`
+	DefaultKeyLifetime time.Duration `yaml:"defaultKeyLifetime"`
 }
 
 type AppConfig struct {
@@ -25,7 +23,6 @@ type AppConfig struct {
 	DBFile             string       `yaml:"dbFile"`
 	HostKeys           []string     `yaml:"hostKeys"`
 	AuthorizedKeyFiles []string     `yaml:"authorizedKeys"`
-	Upload             UploadConfig `yaml:"upload"`
 	Serve              ServeConfig  `yaml:"serve"`
 	Manage             ManageConfig `yaml:"manage"`
 }

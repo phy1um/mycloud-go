@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"sshtest/cmd"
 	"sshtest/config"
 	"sshtest/internal"
 	"sshtest/internal/data"
@@ -19,6 +18,9 @@ import (
 	bm "github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/scp"
 	"github.com/gliderlabs/ssh"
+	"github.com/jmoiron/sqlx"
+
+	scp2 "sshtest/internal/scp"
 )
 
 func main() {
@@ -38,6 +40,16 @@ func main() {
 
 	log.Printf("loaded config: %+v\n", cfg)
 
+	db, err := sqlx.Open("sqlite3", cfg.App.DBFile)
+	if err != nil {
+		panic(err)
+	}
+
+	err = data.Migrate(db)
+	if err != nil {
+		panic(err)
+	}
+
 	addr := fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Manage.Port)
 
 	fileHandler := scp.NewFileSystemHandler(cfg.App.FilePath)
@@ -46,8 +58,8 @@ func main() {
 		&cfg.App,
 		wish.WithAddress(addr),
 		wish.WithMiddleware(
-			bm.Middleware(MakeFolderHandler(&cfg.App)),
-			scp.Middleware(fileHandler, fileHandler),
+			bm.Middleware(newTUIForFolder(&cfg.App)),
+			scp.Middleware(fileHandler, scp2.NewWriter(cfg.App.FilePath, db)),
 		),
 	)
 
@@ -66,7 +78,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/health", health)
 
-	client, err := data.NewClient(cfg.App.DBFile, cfg.App.FilePath)
+	client, err := data.NewClient(db, cfg.App.FilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +88,7 @@ func main() {
 
 	httpAddr := fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Serve.Port)
 
-	err = cmd.RunServers(httpAddr, server, mux)
+	err = internal.RunServers(httpAddr, server, mux)
 	if err != nil {
 		log.Fatalf("scp server error: %s", err.Error())
 	}
@@ -84,7 +96,7 @@ func main() {
 	os.Exit(0)
 }
 
-func MakeFolderHandler(cfg *config.AppConfig) func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+func newTUIForFolder(cfg *config.AppConfig) func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		_, _, active := s.Pty()
 		if !active {

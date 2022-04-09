@@ -16,11 +16,7 @@ type client struct {
 	rootPath string
 }
 
-func NewClient(dbFile string, serveFrom string) (*client, error) {
-	db, err := sqlx.Open("sqlite3", dbFile)
-	if err != nil {
-		return nil, err
-	}
+func NewClient(db *sqlx.DB, serveFrom string) (*client, error) {
 
 	return &client{
 		db:       db,
