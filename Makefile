@@ -19,7 +19,8 @@ serve:
 	go build $(BUILDFLAGS) -v -o bin/server-service ./cmd/serve 
 
 .PHONY: build
-build: upload manage serve
+build:
+	go build $(BUILDFLAGS) -v -o bin/pfsv ./cmd/main
 
 .PHONY: folders
 folders:

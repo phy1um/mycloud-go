@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type server struct {
@@ -12,7 +13,6 @@ type server struct {
 }
 
 type fetchRequest struct {
-	Key  string `json:"key"`
 	Code string `json:"code"`
 }
 
@@ -24,6 +24,7 @@ func NewServer(fetchClient *client) server {
 
 func (s server) Fetch(w http.ResponseWriter, req *http.Request) {
 	log.Println("handling fetch")
+	path := req.URL.Path
 	b, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		serviceError(w, err)
@@ -31,7 +32,7 @@ func (s server) Fetch(w http.ResponseWriter, req *http.Request) {
 	var fetchReq fetchRequest
 	err = json.Unmarshal(b, &fetchReq)
 
-	resp, err := s.fetch.Fetch(fetchReq.Key, fetchReq.Code)
+	resp, err := s.fetch.Fetch(path, fetchReq.Code)
 	if err != nil {
 		serviceError(w, err)
 	}
@@ -46,5 +47,18 @@ func serviceError(w http.ResponseWriter, err error) {
 }
 
 func (s server) DefineServer(mux *http.ServeMux) {
-	mux.HandleFunc("/fetch", s.Fetch)
+	mux.HandleFunc("/", withPathParam("/fetch/", s.Fetch))
+}
+
+func withPathParam(prefix string, fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if !strings.HasPrefix(req.URL.Path, prefix) {
+			return
+		}
+
+		path := strings.TrimPrefix(req.URL.Path, prefix)
+		log.Printf("trimmed %s -> %s", req.URL.Path, path)
+		req.URL.Path = path
+		fn(w, req)
+	}
 }

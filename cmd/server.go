@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,7 +11,7 @@ import (
 	"github.com/gliderlabs/ssh"
 )
 
-func RunSSHServer(server *ssh.Server) error {
+func RunServers(addr string, server *ssh.Server, mux http.Handler) error {
 	interrupted := make(chan os.Signal, 1)
 	done := make(chan error, 1)
 
@@ -18,6 +19,11 @@ func RunSSHServer(server *ssh.Server) error {
 
 	go func() {
 		err := server.ListenAndServe()
+		done <- err
+	}()
+
+	go func() {
+		err := http.ListenAndServe(addr, mux)
 		done <- err
 	}()
 
