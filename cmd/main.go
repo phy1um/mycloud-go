@@ -58,7 +58,7 @@ func main() {
 		&cfg.App,
 		wish.WithAddress(addr),
 		wish.WithMiddleware(
-			bm.Middleware(newTUIForFolder(&cfg.App)),
+			bm.Middleware(newTUIForFolder(&cfg.App, db)),
 			scp.Middleware(fileHandler, scp2.NewWriter(cfg.App.FilePath, db)),
 		),
 	)
@@ -96,7 +96,7 @@ func main() {
 	os.Exit(0)
 }
 
-func newTUIForFolder(cfg *config.AppConfig) func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+func newTUIForFolder(cfg *config.AppConfig, db *sqlx.DB) func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		_, _, active := s.Pty()
 		if !active {
@@ -104,7 +104,7 @@ func newTUIForFolder(cfg *config.AppConfig) func(s ssh.Session) (tea.Model, []te
 			return nil, nil
 		}
 
-		m := tui.NewState(cfg)
+		m := tui.NewState(cfg, db)
 		return m, []tea.ProgramOption{tea.WithAltScreen()}
 	}
 }

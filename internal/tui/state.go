@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"fmt"
-	"io/ioutil"
 	"log"
 	"sshtest/config"
 	"sshtest/internal/data"
@@ -23,11 +21,14 @@ type State struct {
 	db        *sqlx.DB
 	cfg       *config.AppConfig
 	done      bool
+	drop      bool
 }
 
-func NewState(cfg *config.AppConfig) *State {
+func NewState(cfg *config.AppConfig, db *sqlx.DB) *State {
+	log.Printf("initializing state with DB=%v\n", db)
 	return &State{
 		cfg: cfg,
+		db:  db,
 	}
 }
 
@@ -46,19 +47,11 @@ func (s *State) Init() tea.Cmd {
 		log.Printf("failed to run migrate: %s", err.Error())
 	}
 
-	go func() {
-		dir, err := ioutil.ReadDir(s.cfg.FilePath)
-		if err != nil {
-			fmt.Println("failed to read path")
-		}
-
-		baseView := fileView{
-			files:  dir,
-			cursor: 0,
-		}
-
-		s.PushView(baseView)
-	}()
+	baseView := fileView{
+		db:     s.db,
+		cursor: 0,
+	}
+	s.PushView(&baseView)
 
 	return nil
 }
@@ -67,6 +60,11 @@ func (s *State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if s.done {
 		return s, tea.Quit
+	}
+
+	if s.drop {
+		s.drop = false
+		return s, nil
 	}
 
 	switch msg := msg.(type) {
@@ -99,12 +97,14 @@ func (s *State) View() string {
 	if len(s.viewStack) == 0 {
 		return " ::: LOADING ::: "
 	}
+	s.drop = false
 	return s.Top().View()
 }
 
 func (s *State) PushView(v View) {
 	s.viewStack = append(s.viewStack, v)
 	v.Enter()
+	s.drop = true
 }
 
 func (s *State) PopView() {
@@ -113,6 +113,7 @@ func (s *State) PopView() {
 	if len(s.viewStack) == 0 {
 		s.done = true
 	}
+	s.drop = true
 }
 
 func (s *State) Top() View {

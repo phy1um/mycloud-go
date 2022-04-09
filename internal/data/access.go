@@ -7,11 +7,12 @@ import (
 )
 
 type Access struct {
-	Path     string    `db:"path"`
-	Key      string    `db:"key"`
-	UserCode string    `db:"user_code"`
-	Until    time.Time `db:"until"`
-	Created  time.Time `db:"created"`
+	Path        string    `db:"path"`
+	Key         string    `db:"key"`
+	UserCode    string    `db:"user_code"`
+	DisplayName string    `db:"display_name"`
+	Until       time.Time `db:"until"`
+	Created     time.Time `db:"created"`
 }
 
 func (a Access) Can(code string) (bool, error) {

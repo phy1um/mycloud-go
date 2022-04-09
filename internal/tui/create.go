@@ -10,9 +10,10 @@ import (
 )
 
 type createKey struct {
-	path     string
-	duration time.Duration
-	back     tea.Model
+	path        string
+	displayName string
+	duration    time.Duration
+	back        tea.Model
 }
 
 func (c createKey) View() string {
@@ -72,7 +73,7 @@ func makeKeyInternal(path string, duration time.Duration, db *sqlx.DB) (string, 
 		Until:    time.Now().Add(duration),
 	}
 	_, err := db.NamedExec(
-		"INSERT INTO access_keys (path,key,user_code,created,until) VALUES (:path, :key, :user_code, :created, :until)",
+		"INSERT INTO access_keys (path,key,user_code,display_name,created,until) VALUES (:path, :key, :user_code, :display_name, :created, :until)",
 		&access,
 	)
 

@@ -2,10 +2,12 @@ package tui
 
 import (
 	"fmt"
-	"io/fs"
+	"log"
+	"sshtest/internal/data"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/jmoiron/sqlx"
 )
 
 func intmax(a int, b int) int {
@@ -23,35 +25,47 @@ func intmin(a int, b int) int {
 }
 
 type fileView struct {
-	files  []fs.FileInfo
+	tag    string
 	cursor int
+	files  []data.File
+	db     *sqlx.DB
+	err    error
 }
 
-func (f fileView) Enter() {
+func (f *fileView) Enter() {
+	err := f.db.Select(&f.files, "SELECT * FROM files")
+	if err != nil {
+		f.err = err
+	}
+	log.Printf("found %d files to display\n", len(f.files))
+	for _, f := range f.files {
+		log.Printf(" - %s\n", f.Path)
+	}
 }
 
-func (f fileView) Exit() {
+func (f *fileView) Exit() {
 
 }
 
-func (f fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
+func (f *fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "j", "down":
-			return fileView{
+			return &fileView{
 				files:  f.files,
 				cursor: intmin(f.cursor+1, len(f.files)-1),
 			}, nil
 		case "k", "up":
-			return fileView{
+			return &fileView{
 				files:  f.files,
 				cursor: intmax(f.cursor-1, 0),
 			}, nil
 		case "x", "enter":
 			st.PushView(createKey{
-				path:     f.files[f.cursor].Name(),
-				duration: 48 * time.Hour,
+				path:        f.files[f.cursor].Id,
+				displayName: f.files[f.cursor].Path,
+				duration:    48 * time.Hour,
 			})
 			return nil, nil
 		}
@@ -60,13 +74,16 @@ func (f fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	return f, nil
 }
 
-func (f fileView) View() string {
+func (f *fileView) View() string {
+	if f.err != nil {
+		return fmt.Sprintf(":: File View Error: %s", f.err.Error())
+	}
 	s := " :: File View :: \n"
 	for i, file := range f.files {
 		if i == f.cursor {
-			s += fmt.Sprintf("[*] %s\n", file.Name())
+			s += fmt.Sprintf("[*] %s\n", file.Path)
 		} else {
-			s += fmt.Sprintf("[ ] %s\n", file.Name())
+			s += fmt.Sprintf("[ ] %s\n", file.Path)
 		}
 	}
 	s += "\n -- Use J/K for down/up. Q to quit --\n"
