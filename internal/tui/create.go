@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"log"
 	"sshtest/internal/data"
 	"time"
 
@@ -9,58 +10,75 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type createKey struct {
+type manageView struct {
+	options     menu
+	sub         View
 	path        string
 	displayName string
-	duration    time.Duration
-	back        tea.Model
 }
 
-func (c createKey) View() string {
-	return fmt.Sprintf(`
-
- ::: Creating Access Key for File :::
-
-  TARGET FILE: %s
-  DURATION: %s
-
-  ::: Enter to confirm, Esc to go back, J/K to increase/decrease time :::
-	`, c.path, c.duration.String())
+func NewManageView(path string, displayName string) View {
+	items := []item{
+		fnItem{
+			name: "Create Access Key",
+			do: func(st *State) (View, tea.Cmd) {
+				key, err := makeKeyInternal(path, time.Hour*48, st.db)
+				st.PopView()
+				st.PushView(createStatusView{
+					key: key,
+					err: err,
+				})
+				return nil, nil
+			},
+		},
+		fnItem{
+			name: "Set Tag",
+			do: func(st *State) (View, tea.Cmd) {
+				st.PushView(&setTagView{
+					options:     menuFromStrings(st.cfg.Manage.Buckets, setTag(path)),
+					path:        path,
+					displayName: displayName,
+				})
+				return nil, nil
+			},
+		},
+	}
+	return &manageView{
+		options: menu{
+			items:      items,
+			renderBase: " - [%s] :: %s",
+			sel:        "*",
+			unsel:      " ",
+		},
+	}
 }
 
-func (c createKey) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
+func (m *manageView) Enter() {}
+func (m *manageView) Exit()  {}
+func (m *manageView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "enter":
-			key, err := makeKeyInternal(c.path, c.duration, st.db)
-			st.PopView()
-			st.PushView(createStatusView{
-				key: key,
-				err: err,
-			})
 		case "j", "down":
-			return createKey{
-				path:     c.path,
-				duration: c.duration - time.Hour,
-				back:     c.back,
-			}, nil
+			m.options = m.options.next()
 		case "k", "up":
-			return createKey{
-				path:     c.path,
-				duration: c.duration + time.Hour,
-				back:     c.back,
-			}, nil
+			m.options = m.options.prev()
+		case "x", "enter":
+			return m.options.action(st)
 		}
 	}
-	return nil, nil
+	return m, nil
 }
 
-func (c createKey) Enter() {
-}
+func (m *manageView) View() string {
+	return fmt.Sprintf(`
+::: Manage File [%s] :::
 
-func (c createKey) Exit() {
+%s
 
+::: Enter to confirm, Esc to go back, J/K to increase/decrease time :::`,
+		m.displayName,
+		m.options.render())
 }
 
 func makeKeyInternal(path string, duration time.Duration, db *sqlx.DB) (string, error) {
@@ -72,6 +90,7 @@ func makeKeyInternal(path string, duration time.Duration, db *sqlx.DB) (string, 
 		Created:  time.Now(),
 		Until:    time.Now().Add(duration),
 	}
+	log.Printf("creating access key for %s: %s\n", path, key)
 	_, err := db.NamedExec(
 		"INSERT INTO access_keys (path,key,user_code,display_name,created,until) VALUES (:path, :key, :user_code, :display_name, :created, :until)",
 		&access,
@@ -100,4 +119,53 @@ func (c createStatusView) View() string {
 
 func (c createStatusView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	return nil, nil
+}
+
+type setTagView struct {
+	options     menu
+	path        string
+	displayName string
+}
+
+func (s setTagView) Enter() {}
+func (s setTagView) Exit()  {}
+func (s setTagView) View() string {
+	return fmt.Sprintf(`
+::: Set Tags for File [%s] :::
+
+%s
+
+::: --- :::`,
+		s.displayName,
+		s.options.render(),
+	)
+}
+
+func (s *setTagView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "j", "down":
+			s.options = s.options.next()
+		case "k", "up":
+			s.options = s.options.prev()
+		case "x", "enter":
+			return s.options.action(st)
+		}
+	}
+	return s, nil
+}
+
+func setTag(id string) func(tag string, st *State) {
+	return func(tag string, st *State) {
+		file := data.File{
+			Id:  id,
+			Tag: tag,
+		}
+		log.Printf("trying to update tag for: %s to %s", id, tag)
+		_, err := st.db.NamedExec("UPDATE files SET tag=:tag WHERE id = \""+id+"\"", &file)
+		if err != nil {
+			log.Printf("failed to update tag: %s (%s): %s", id, tag, err.Error())
+		}
+	}
 }

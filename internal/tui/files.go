@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"sshtest/internal/data"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/jmoiron/sqlx"
@@ -33,10 +32,17 @@ type fileView struct {
 }
 
 func (f *fileView) Enter() {
-	err := f.db.Select(&f.files, "SELECT * FROM files")
+	var err error
+	if f.tag != "" {
+		err = f.db.Select(&f.files, "SELECT * FROM files WHERE tag=$1", f.tag)
+	} else {
+		err = f.db.Select(&f.files, "SELECT * FROM files", f.tag)
+	}
+
 	if err != nil {
 		f.err = err
 	}
+
 	log.Printf("found %d files to display\n", len(f.files))
 	for _, f := range f.files {
 		log.Printf(" - %s\n", f.Path)
@@ -62,11 +68,10 @@ func (f *fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 				cursor: intmax(f.cursor-1, 0),
 			}, nil
 		case "x", "enter":
-			st.PushView(createKey{
-				path:        f.files[f.cursor].Id,
-				displayName: f.files[f.cursor].Path,
-				duration:    48 * time.Hour,
-			})
+			st.PushView(NewManageView(
+				f.files[f.cursor].Id,
+				f.files[f.cursor].Path,
+			))
 			return nil, nil
 		}
 	}

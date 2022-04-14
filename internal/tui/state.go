@@ -47,9 +47,12 @@ func (s *State) Init() tea.Cmd {
 		log.Printf("failed to run migrate: %s", err.Error())
 	}
 
-	baseView := fileView{
-		db:     s.db,
-		cursor: 0,
+	tagSet := []string{"all"}
+	tagSet = append(tagSet, s.cfg.Manage.Buckets...)
+
+	baseView := bucketView{
+		db:   s.db,
+		tags: tagSet,
 	}
 	s.PushView(&baseView)
 
