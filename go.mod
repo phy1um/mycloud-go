@@ -3,7 +3,9 @@ module sshtest
 go 1.18
 
 require (
+	github.com/charmbracelet/bubbles v0.10.3
 	github.com/charmbracelet/bubbletea v0.20.0
+	github.com/charmbracelet/lipgloss v0.4.0
 	github.com/charmbracelet/wish v0.3.0
 	github.com/gliderlabs/ssh v0.3.3
 	github.com/google/uuid v1.3.0
@@ -14,8 +16,8 @@ require (
 
 require (
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
+	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/charmbracelet/keygen v0.2.1 // indirect
-	github.com/charmbracelet/lipgloss v0.4.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
