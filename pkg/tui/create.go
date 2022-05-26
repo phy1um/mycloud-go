@@ -3,11 +3,11 @@ package tui
 import (
 	"fmt"
 	"log"
-	"sshtest/internal/data"
+	"sshtest/pkg/data"
+	"sshtest/pkg/store"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/jmoiron/sqlx"
 )
 
 type manageView struct {
@@ -17,27 +17,16 @@ type manageView struct {
 	displayName string
 }
 
-func NewManageView(path string, displayName string) View {
+func NewManageView(path string, displayName string, store store.Client) View {
 	items := []item{
 		fnItem{
 			name: "Create Access Key",
 			do: func(st *State) (View, tea.Cmd) {
-				key, err := makeKeyInternal(path, time.Hour*48, st.db)
+				key, err := makeKeyInternal(path, time.Hour*48, store)
 				st.PopView()
 				st.PushView(createStatusView{
 					key: key,
 					err: err,
-				})
-				return nil, nil
-			},
-		},
-		fnItem{
-			name: "Set Tag",
-			do: func(st *State) (View, tea.Cmd) {
-				st.PushView(&setTagView{
-					options:     menuFromStrings(st.cfg.Manage.Buckets, setTag(path)),
-					path:        path,
-					displayName: displayName,
 				})
 				return nil, nil
 			},
@@ -81,7 +70,7 @@ func (m *manageView) View() string {
 		m.options.render())
 }
 
-func makeKeyInternal(path string, duration time.Duration, db *sqlx.DB) (string, error) {
+func makeKeyInternal(path string, duration time.Duration, store store.Client) (string, error) {
 	key := data.RandomKey()
 	access := data.Access{
 		Path:     path,
@@ -91,10 +80,7 @@ func makeKeyInternal(path string, duration time.Duration, db *sqlx.DB) (string, 
 		Until:    time.Now().Add(duration),
 	}
 	log.Printf("creating access key for %s: %s\n", path, key)
-	_, err := db.NamedExec(
-		"INSERT INTO access_keys (path,key,user_code,display_name,created,until) VALUES (:path, :key, :user_code, :display_name, :created, :until)",
-		&access,
-	)
+	err := store.CreateAccessKey(&access)
 
 	if err != nil {
 		return "", err
@@ -156,11 +142,11 @@ func (s *setTagView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	return s, nil
 }
 
+/*
 func setTag(id string) func(tag string, st *State) {
 	return func(tag string, st *State) {
 		file := data.File{
-			Id:  id,
-			Tag: tag,
+			Id: id,
 		}
 		log.Printf("trying to update tag for: %s to %s", id, tag)
 		_, err := st.db.NamedExec("UPDATE files SET tag=:tag WHERE id = \""+id+"\"", &file)
@@ -169,3 +155,4 @@ func setTag(id string) func(tag string, st *State) {
 		}
 	}
 }
+*/

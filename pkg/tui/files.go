@@ -1,12 +1,13 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"log"
-	"sshtest/internal/data"
+	"sshtest/pkg/data"
+	"sshtest/pkg/store"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/jmoiron/sqlx"
 )
 
 func intmax(a int, b int) int {
@@ -24,24 +25,34 @@ func intmin(a int, b int) int {
 }
 
 type fileView struct {
-	tag    string
-	cursor int
-	files  []data.File
-	db     *sqlx.DB
-	err    error
+	ctx      context.Context
+	cursor   int
+	files    []data.File
+	store    store.Client
+	dbCursor store.CursorKey
+	err      error
+}
+
+func NewFileView(ctx context.Context, store store.Client, pageSize int) *fileView {
+	log.Printf("making file view with store = %+v", store)
+	return &fileView{
+		ctx:      ctx,
+		cursor:   0,
+		store:    store,
+		dbCursor: store.NewCursor(pageSize, ""),
+	}
 }
 
 func (f *fileView) Enter() {
 	var err error
-	if f.tag != "" {
-		err = f.db.Select(&f.files, "SELECT * FROM files WHERE tag=$1", f.tag)
-	} else {
-		err = f.db.Select(&f.files, "SELECT * FROM files", f.tag)
-	}
 
+	files, err := f.store.GetFiles(f.ctx, f.dbCursor)
 	if err != nil {
 		f.err = err
+		return
 	}
+
+	f.files = files
 
 	log.Printf("found %d files to display\n", len(f.files))
 	for _, f := range f.files {
@@ -50,7 +61,7 @@ func (f *fileView) Enter() {
 }
 
 func (f *fileView) Exit() {
-
+	f.store.DestroyCursor(f.dbCursor)
 }
 
 func (f *fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
@@ -68,9 +79,13 @@ func (f *fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 				cursor: intmax(f.cursor-1, 0),
 			}, nil
 		case "x", "enter":
+			if f.files == nil {
+				return f, nil
+			}
 			st.PushView(NewManageView(
 				f.files[f.cursor].Id,
 				f.files[f.cursor].Path,
+				f.store,
 			))
 			return nil, nil
 		}

@@ -5,7 +5,8 @@ import (
 	"io"
 	"log"
 	"os"
-	"sshtest/internal/data"
+	"sshtest/pkg/data"
+	"sshtest/pkg/store"
 	"time"
 
 	"github.com/charmbracelet/wish/scp"
@@ -17,7 +18,7 @@ import (
 type serverWriter struct {
 	root        string
 	allowedTags []string
-	db          *sqlx.DB
+	store       store.Client
 	failOnMkdir bool
 }
 
@@ -25,7 +26,7 @@ func NewWriter(root string, db *sqlx.DB) *serverWriter {
 	return &serverWriter{
 		root:        root,
 		allowedTags: []string{},
-		db:          db,
+		store:       store.NewClient(db),
 		failOnMkdir: true,
 	}
 }
@@ -58,16 +59,17 @@ func (w serverWriter) Write(s ssh.Session, file *scp.FileEntry) (int64, error) {
 		Id:      fileName,
 		Path:    file.Filepath,
 		Created: time.Now(),
-		Tag:     "NONE",
 	}
 
-	// tell the database about this new file
-	_, err = w.db.NamedExec(`INSERT INTO files (id,path,created,tag) VALUES(:id, :path, :created, :tag)`, &trackedFile)
+	tags := data.TagSet([]string{"new"})
+
+	w.store.CreateFile(s.Context(), &trackedFile, tags)
+
 	if err != nil {
-		log.Printf("failed to create DB entry for file %s\n", fileName)
+		return 0, err
 	}
 
-	return copied, err
+	return copied, nil
 }
 
 func (w serverWriter) prefixedFile(file string) string {

@@ -1,8 +1,8 @@
 package file
 
 import (
-	"sshtest/internal/data"
-	"sshtest/internal/tui"
+	"sshtest/pkg/data"
+	"sshtest/pkg/tui"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"

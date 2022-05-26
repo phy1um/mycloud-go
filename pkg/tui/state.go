@@ -3,7 +3,7 @@ package tui
 import (
 	"log"
 	"sshtest/config"
-	"sshtest/internal/data"
+	"sshtest/pkg/store"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/jmoiron/sqlx"
@@ -18,7 +18,7 @@ type View interface {
 
 type State struct {
 	viewStack []View
-	db        *sqlx.DB
+	store     store.Client
 	cfg       *config.AppConfig
 	done      bool
 	drop      bool
@@ -27,22 +27,14 @@ type State struct {
 func NewState(cfg *config.AppConfig, db *sqlx.DB) *State {
 	log.Printf("initializing state with DB=%v\n", db)
 	return &State{
-		cfg: cfg,
-		db:  db,
+		cfg:   cfg,
+		store: store.NewClient(db),
 	}
 }
 
 func (s *State) Init() tea.Cmd {
-	db, err := sqlx.Open("sqlite3", s.cfg.DBFile)
-
-	if err != nil {
-		log.Println("failed to connect to database")
-		return tea.Quit
-	}
-
-	s.db = db
-
-	err = data.Migrate(db)
+	log.Printf("Has some store.. %+v\n", s.store)
+	err := s.store.Migrate()
 	if err != nil {
 		log.Printf("failed to run migrate: %s", err.Error())
 	}
@@ -51,8 +43,8 @@ func (s *State) Init() tea.Cmd {
 	tagSet = append(tagSet, s.cfg.Manage.Buckets...)
 
 	baseView := bucketView{
-		db:   s.db,
-		tags: tagSet,
+		store: s.store,
+		tags:  tagSet,
 	}
 	s.PushView(&baseView)
 

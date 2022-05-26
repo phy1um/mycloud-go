@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os"
 	"sshtest/config"
-	"sshtest/internal"
-	"sshtest/internal/data"
-	"sshtest/internal/tui"
+	internal "sshtest/pkg"
+	"sshtest/pkg/data"
+	"sshtest/pkg/tui"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -20,7 +20,7 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/jmoiron/sqlx"
 
-	scp2 "sshtest/internal/scp"
+	scp2 "sshtest/pkg/scp"
 )
 
 func main() {
@@ -41,11 +41,6 @@ func main() {
 	log.Printf("loaded config: %+v\n", cfg)
 
 	db, err := sqlx.Open("sqlite3", cfg.App.DBFile)
-	if err != nil {
-		panic(err)
-	}
-
-	err = data.Migrate(db)
 	if err != nil {
 		panic(err)
 	}

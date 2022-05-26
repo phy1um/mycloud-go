@@ -1,17 +1,18 @@
 package tui
 
 import (
+	"context"
 	"fmt"
+	"sshtest/pkg/store"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/jmoiron/sqlx"
 )
 
 type bucketView struct {
 	tags   []string
 	cursor int
-	db     *sqlx.DB
+	store  store.Client
 }
 
 func (b bucketView) Enter() {}
@@ -23,15 +24,15 @@ func (b bucketView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 		switch msg.String() {
 		case "j", "down":
 			return bucketView{
+				store:  b.store,
 				tags:   b.tags,
 				cursor: intmin(b.cursor+1, len(b.tags)-1),
-				db:     b.db,
 			}, nil
 		case "k", "up":
 			return bucketView{
+				store:  b.store,
 				tags:   b.tags,
 				cursor: intmax(b.cursor-1, 0),
-				db:     b.db,
 			}, nil
 		case "x", "enter":
 			tag := b.tags[b.cursor]
@@ -40,12 +41,8 @@ func (b bucketView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 				tag = ""
 			}
 
-			fv := fileView{
-				tag:    tag,
-				cursor: 0,
-				db:     b.db,
-			}
-			st.PushView(&fv)
+			fv := NewFileView(context.Background(), b.store, 10)
+			st.PushView(fv)
 			return nil, nil
 		}
 	}
