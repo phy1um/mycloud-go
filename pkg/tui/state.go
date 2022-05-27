@@ -18,6 +18,8 @@ type View interface {
 	Update(context.Context, tea.Msg, *State) (View, tea.Cmd)
 }
 
+// State manages a stack of views and provides common utility like a back button
+// When all views are popped the program ends
 type State struct {
 	viewStack []View
 	store     store.Client

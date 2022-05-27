@@ -14,6 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// serverWriter is a front-door for files uploaded with SCP
 type serverWriter struct {
 	root        string
 	allowedTags []string
@@ -21,6 +22,7 @@ type serverWriter struct {
 	failOnMkdir bool
 }
 
+// NewWriter creates a writer that registers files in a database and moves everything to one directory
 func NewWriter(root string, db *sqlx.DB) *serverWriter {
 	return &serverWriter{
 		root:        root,
@@ -41,6 +43,7 @@ func (w serverWriter) Mkdir(_ ssh.Session, dir *scp.DirEntry) error {
 }
 
 func (w serverWriter) Write(s ssh.Session, file *scp.FileEntry) (int64, error) {
+	// All incoming files get a random UUID path
 	fileName := uuid.New().String()
 	f, err := os.OpenFile(w.prefixedFile(fileName), os.O_TRUNC|os.O_RDWR|os.O_CREATE, file.Mode)
 	defer f.Close()
@@ -54,8 +57,10 @@ func (w serverWriter) Write(s ssh.Session, file *scp.FileEntry) (int64, error) {
 		return 0, fmt.Errorf("failed to write file: %q: %w", file.Filepath, err)
 	}
 
+	// Tag all incoming files as "new"
 	tags := data.TagSet([]string{"new"})
 
+	// Create the file and tag entries in the database
 	w.store.CreateFile(s.Context(), fileName, file.Filepath, tags)
 
 	if err != nil {

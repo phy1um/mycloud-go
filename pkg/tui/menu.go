@@ -44,6 +44,7 @@ func menuFromStrings(names []string, fn func(s string, st *State)) menu {
 	}
 }
 
+// menu is a common abstraction for text-based menus
 type menu struct {
 	items      []item
 	cursor     int

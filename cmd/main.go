@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -63,13 +64,16 @@ func main() {
 
 	addr := fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Manage.Port)
 
+	// Use default SCP outgoing file handler, but we customize the incoming handler
 	fileHandler := scp.NewFileSystemHandler(cfg.App.FilePath)
 
+	// Create server options based on sensible defaults
 	opts := internal.ServerOpts(
+		ctx,
 		&cfg.App,
 		wish.WithAddress(addr),
 		wish.WithMiddleware(
-			bm.Middleware(newTUIForFolder(ctx, &cfg.App, db)),
+			bm.Middleware(newTUIForConfig(ctx, &cfg.App, db)),
 			scp.Middleware(fileHandler, scp2.NewWriter(cfg.App.FilePath, db)),
 		),
 	)
@@ -82,6 +86,7 @@ func main() {
 		log.Ctx(ctx).Fatal().Err(err).Msg("failed to create server")
 	}
 
+	// Setup a health/status endpoint
 	health := internal.Health{
 		Version: cfg.Meta.Version,
 	}
@@ -89,6 +94,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/health", health)
 
+	// Initialize our file retrieval server
 	client, err := data.NewClient(db, cfg.App.FilePath)
 	if err != nil {
 		log.Ctx(ctx).Fatal().Err(err).Msg("failed to create data client")
@@ -99,6 +105,7 @@ func main() {
 
 	httpAddr := fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Serve.Port)
 
+	// Run everything - this function blocks until we are done
 	err = internal.RunServers(httpAddr, server, mux)
 	if err != nil {
 		log.Ctx(ctx).Fatal().Err(err).Msg("error running servers")
@@ -107,19 +114,22 @@ func main() {
 	os.Exit(0)
 }
 
-func newTUIForFolder(ctx context.Context, cfg *config.AppConfig, db *sqlx.DB) func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+// Create a TUI for managing files based on our app config
+func newTUIForConfig(ctx context.Context, cfg *config.AppConfig, db *sqlx.DB) func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		pty, _, active := s.Pty()
-		if !active {
-			fmt.Println("no active terminal, skipping")
-			return nil, nil
-		}
 
 		logg := log.Ctx(ctx).With().
 			Str("ssh-user", s.User()).
 			Str("ssh-key-type", s.PublicKey().Type()).
 			Str("ssh-pty", fmt.Sprintf("PTY(%t): %d x %d", active, pty.Window.Width, pty.Window.Height)).
+			Str("remote-address", s.RemoteAddr().String()).
 			Logger()
+
+		if !active {
+			logg.Error().Stack().Err(errors.New("no PTY active for connected client"))
+			return nil, nil
+		}
 
 		wctx := logg.WithContext(s.Context())
 

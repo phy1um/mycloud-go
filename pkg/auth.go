@@ -8,11 +8,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// PublicKeyAuth checks an incoming connection against a list of allowed keys
+// It provides a `PublicKeyHandler` method which is compatible with `ssh.PublicKeyHandler`
 type PublicKeyAuth struct {
 	allowedKeys []ssh.PublicKey
 	ctx         context.Context
 }
 
+// NewPublicKeyAuthFromFiles loads public keys from a list of paths
 func NewPublicKeyAuthFromFiles(ctx context.Context, paths []string) PublicKeyAuth {
 	auth := PublicKeyAuth{
 		ctx: ctx,
@@ -31,6 +34,7 @@ func NewPublicKeyAuthFromFiles(ctx context.Context, paths []string) PublicKeyAut
 	return auth
 }
 
+// PublicKeyHandler decides if we allow access based on comparing public keys
 func (p PublicKeyAuth) PublicKeyHandler(x ssh.Context, key ssh.PublicKey) bool {
 
 	logg := log.Ctx(p.ctx).With().
@@ -50,6 +54,7 @@ func (p PublicKeyAuth) PublicKeyHandler(x ssh.Context, key ssh.PublicKey) bool {
 	return false
 }
 
+// loadPublicKey takes a path and tries to load a public key
 func loadPublicKey(path string) (ssh.PublicKey, error) {
 
 	b, err := ioutil.ReadFile(path)

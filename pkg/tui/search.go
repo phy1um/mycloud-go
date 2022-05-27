@@ -20,6 +20,7 @@ const (
 	Tag  SearchKind = "tag"
 )
 
+// fileSearchView allows users to search for files by name and tag
 type fileSearchView struct {
 	tags   []string
 	cursor int

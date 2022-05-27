@@ -11,6 +11,7 @@ import (
 	"github.com/gliderlabs/ssh"
 )
 
+// RunServers starts listening for connections, and handles interrupts/signals. When it returns the servers are dead.
 func RunServers(addr string, server *ssh.Server, mux http.Handler) error {
 	interrupted := make(chan os.Signal, 1)
 	done := make(chan error, 1)

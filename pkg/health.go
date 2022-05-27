@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// Health is the basis of a simple health-check service
 type Health struct {
 	Version string
 }

@@ -24,6 +24,8 @@ func intmin(a int, b int) int {
 	return b
 }
 
+// fileView displays a list of files
+// TODO: pagination
 type fileView struct {
 	cursor   int
 	files    []*data.File
@@ -40,9 +42,11 @@ func NewFileView(ss store.Client, pageSize int, fn store.CursorFunc) *fileView {
 	}
 }
 
+// Enter is called when this view is first shown
 func (f *fileView) Enter(ctx context.Context) {
 	var err error
 
+	// Fetch the files on startup
 	files, err := f.store.GetFiles(ctx, f.dbCursor)
 	if err != nil {
 		log.Ctx(ctx).Error().Stack().Err(err).Msg("failed to get files")
@@ -55,10 +59,13 @@ func (f *fileView) Enter(ctx context.Context) {
 	log.Ctx(ctx).Info().Msgf("found %d files to display\n", len(f.files))
 }
 
+// Exit is called when this view is no longer needed
 func (f *fileView) Exit(_ context.Context) {
 	f.store.DestroyCursor(f.dbCursor)
 }
 
+// Update is called for each bubbletea event
+// It allows for selecting a file to manage
 func (f *fileView) Update(ctx context.Context, msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -72,6 +79,7 @@ func (f *fileView) Update(ctx context.Context, msg tea.Msg, st *State) (View, te
 				return f, nil
 			}
 			log.Ctx(ctx).Info().Msg("selecting file to view")
+			// Show the manage view for the selected file
 			st.PushView(NewManageView(
 				f.files[f.cursor],
 				f.store,
@@ -83,6 +91,7 @@ func (f *fileView) Update(ctx context.Context, msg tea.Msg, st *State) (View, te
 	return f, nil
 }
 
+// View renders the list of files
 func (f *fileView) View() []string {
 	if f.err != nil {
 		return []string{fmt.Sprintf(":: File View Error: %s", f.err.Error())}
