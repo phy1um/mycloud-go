@@ -13,9 +13,7 @@ RUN ls /tmp
 
 FROM alpine:3.15
 
-COPY --from=builder /src/bin/upload-service /bin/upload
-COPY --from=builder /src/bin/server-service /bin/server
-COPY --from=builder /src/bin/manage-service /bin/manage
+COPY --from=builder /src/bin/pfsv /bin/pfsv
 COPY --from=builder /tmp/id_host /srv/id_host
 COPY --from=builder /tmp/id_host.pub /srv/id_host.pub
 
