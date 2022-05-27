@@ -1,25 +1,29 @@
 package internal
 
 import (
+	"context"
 	"io/ioutil"
-	"log"
 
 	"github.com/gliderlabs/ssh"
+	"github.com/rs/zerolog/log"
 )
 
 type PublicKeyAuth struct {
 	allowedKeys []ssh.PublicKey
+	ctx         context.Context
 }
 
-func NewPublicKeyAuthFromFiles(paths []string) PublicKeyAuth {
-	auth := PublicKeyAuth{}
+func NewPublicKeyAuthFromFiles(ctx context.Context, paths []string) PublicKeyAuth {
+	auth := PublicKeyAuth{
+		ctx: ctx,
+	}
 
 	for _, file := range paths {
 		key, err := loadPublicKey(file)
 		if err != nil {
-			log.Printf("failed to load public key %s: %s\n", file, err.Error())
+			log.Ctx(ctx).Error().Stack().Err(err).Msgf("failed to load public key: %s", key)
 		} else {
-			log.Printf("loaded public key %s\n", file)
+			log.Ctx(ctx).Info().Msgf("loaded public key: %s", key.Type())
 			auth.allowedKeys = append(auth.allowedKeys, key)
 		}
 	}
@@ -27,15 +31,22 @@ func NewPublicKeyAuthFromFiles(paths []string) PublicKeyAuth {
 	return auth
 }
 
-func (p PublicKeyAuth) PublicKeyHandler(_ ssh.Context, key ssh.PublicKey) bool {
-	log.Printf("testing key: %s\n", key.Type())
+func (p PublicKeyAuth) PublicKeyHandler(x ssh.Context, key ssh.PublicKey) bool {
+
+	logg := log.Ctx(p.ctx).With().
+		Str("incoming-key-type", key.Type()).
+		Str("incoming-ssh-user", x.User()).
+		Str("remote-address", x.RemoteAddr().String()).
+		Logger()
 
 	for _, allowedKey := range p.allowedKeys {
 		if ssh.KeysEqual(key, allowedKey) {
+			logg.Info().Msg("connection allowed")
 			return true
 		}
 	}
-	log.Printf("denied access to %s\n", key.Type())
+
+	logg.Info().Msg("connection denied")
 	return false
 }
 
