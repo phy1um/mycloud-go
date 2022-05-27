@@ -7,7 +7,7 @@ mkdir --parents $BASEDIR
 
 # add_file(name, path)
 function add_file {
-    #$EXEC "INSERT INTO files (id, name, path, created) VALUES (\"$(uuidgen)\", \"$1\", \"$2\", CURRENT_TIMESTAMP);"
+    $EXEC "INSERT INTO files (id, name, path, created) VALUES (\"$(uuidgen)\", \"$1\", \"$2\", CURRENT_TIMESTAMP);"
     curl https://loripsum.net/api > "$BASEDIR/$2"
 }
 

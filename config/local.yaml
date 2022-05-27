@@ -9,10 +9,6 @@ app:
   manage:
     port: 8070
     defaultKeyLife: 24h
-    buckets:
-      - pics
-      - docs
-      - backup
   serve:
     port: 8080
 meta:
