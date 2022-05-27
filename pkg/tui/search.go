@@ -56,8 +56,10 @@ func (b *fileSearchView) Update(ctx context.Context, msg tea.Msg, st *State) (Vi
 			if b.search == All {
 				fn = store.AllFiles()
 			} else if b.search == Name {
+				log.Ctx(ctx).Info().Msgf("search for file name \"%s\"", b.input.Value())
 				fn = store.FileNameSearch(b.input.Value())
 			} else if b.search == Tag {
+				log.Ctx(ctx).Info().Msgf("search for tag \"%s\"", b.input.Value())
 				fn = store.FileTagSearch((b.input.Value()))
 			}
 
@@ -65,7 +67,6 @@ func (b *fileSearchView) Update(ctx context.Context, msg tea.Msg, st *State) (Vi
 			st.PushView(fv)
 			return nil, nil
 		default:
-			log.Ctx(ctx).Info().Msg("updating textinput")
 			n, cmd := b.input.Update(msg)
 			b.input = n
 			return b, cmd

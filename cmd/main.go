@@ -44,16 +44,20 @@ func main() {
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msgf("failed to load config: %s", configPath)
-		panic(err)
+		log.Ctx(ctx).Fatal().Err(err).Msgf("failed to load config: %s", configPath)
 	}
 
 	log.Ctx(ctx).Info().Msgf("loaded config: %+v", cfg)
 
+	annotatedLogger := log.Ctx(ctx).With().
+		Str("app-version", cfg.Meta.Version).
+		Str("database", cfg.App.DBFile).
+		Logger()
+	ctx = annotatedLogger.WithContext(ctx)
+
 	db, err := sqlx.Open("sqlite3", cfg.App.DBFile)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("failed to connect to database")
-		panic(err)
+		log.Ctx(ctx).Fatal().Err(err).Msg("failed to connect to database")
 	}
 
 	addr := fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Manage.Port)
@@ -74,8 +78,7 @@ func main() {
 	server, err := wish.NewServer(opts...)
 
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("failed to create server")
-		panic(err)
+		log.Ctx(ctx).Fatal().Err(err).Msg("failed to create server")
 	}
 
 	health := internal.Health{
@@ -87,7 +90,7 @@ func main() {
 
 	client, err := data.NewClient(db, cfg.App.FilePath)
 	if err != nil {
-		panic(err)
+		log.Ctx(ctx).Fatal().Err(err).Msg("failed to create data client")
 	}
 
 	ds := data.NewServer(ctx, client)
@@ -97,7 +100,7 @@ func main() {
 
 	err = internal.RunServers(httpAddr, server, mux)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("error running servers")
+		log.Ctx(ctx).Fatal().Err(err).Msg("error running servers")
 	}
 
 	os.Exit(0)
