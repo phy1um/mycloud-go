@@ -2,7 +2,7 @@
 
 _Human scale file management and sharing_
 
-Created by Tom Marks
+Very WIP. Created by Tom Marks
 
 My Links: [website](https://coding.tommarks.xyz) | [youtube](https://www.youtube.com/c/TomMarksTalksCode) | [twitch](https://twitch.tv/phylum919)
 
