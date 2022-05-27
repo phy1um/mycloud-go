@@ -66,7 +66,7 @@ func (s *State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q":
+		case "esc":
 			if len(s.viewStack) == 0 {
 				return s, tea.Quit
 			}

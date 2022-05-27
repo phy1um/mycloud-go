@@ -52,13 +52,16 @@ func (b *fileSearchView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 			}
 			return b, nil
 		case "enter":
+			var fn store.CursorFunc
 			if b.search == All {
-				fv := NewFileView(context.Background(), b.store, 10)
-				st.PushView(fv)
+				fn = store.AllFiles()
+			} else if b.search == Name {
+				fn = store.FileNameSearch(b.input.Value())
 			} else if b.search == Tag {
-
+				fn = store.FileTagSearch((b.input.Value()))
 			}
-			fv := NewFileView(context.Background(), b.store, 10)
+
+			fv := NewFileView(context.Background(), b.store, 10, fn)
 			st.PushView(fv)
 			return nil, nil
 		default:

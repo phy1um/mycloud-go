@@ -7,7 +7,7 @@ import (
 )
 
 type Access struct {
-	Path        string    `db:"path"`
+	FileId      string    `db:"file_id"`
 	Key         string    `db:"key"`
 	UserCode    string    `db:"user_code"`
 	DisplayName string    `db:"display_name"`

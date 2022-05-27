@@ -33,19 +33,13 @@ type fileView struct {
 	err      error
 }
 
-func NewFileAllView(ctx context.Context, s store.Client) *fileView {
-	cc := store.AllCursor{
-		pageSize: 10,
-	}
-}
-
-func NewFileView(ctx context.Context, store store.Client) *fileView {
-	log.Printf("making file view with store = %+v", store)
+func NewFileView(ctx context.Context, ss store.Client, pageSize int, fn store.CursorFunc) *fileView {
+	log.Printf("making file view with store = %+v", ss)
 	return &fileView{
 		ctx:      ctx,
 		cursor:   0,
-		store:    store,
-		dbCursor: store.NewCursor(pageSize, ""),
+		store:    ss,
+		dbCursor: ss.NewCursor(pageSize, "name", store.Descend, fn),
 	}
 }
 

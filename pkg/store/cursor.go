@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -16,33 +17,49 @@ const (
 	Ascend  Order = "ASC"
 )
 
-type Cursor interface {
-	query(ctx context.Context, db *sqlx.DB) (*sqlx.Rows, error)
-	setError(err error)
-	setDirty(b bool)
-	nextPage()
-}
-
-type cursorShared struct {
+type CursorFunc func(ctx context.Context, tail string, db *sqlx.DB) (*sqlx.Rows, error)
+type Cursor struct {
 	offset   int
 	pageSize int
 	order    Order
 	orderBy  string
 	dirty    bool
 	err      error
+	exec     CursorFunc
 }
 
-func (c cursorShared) queryTail() string {
+func (c Cursor) setError(err error) {
+	c.err = err
+}
+
+func (c Cursor) setDirty(b bool) {
+	c.dirty = b
+}
+
+func (c Cursor) nextPage() {
+	c.offset += c.pageSize
+}
+
+func (c Cursor) query(ctx context.Context, db *sqlx.DB) (*sqlx.Rows, error) {
+	return c.exec(ctx, c.queryTail(), db)
+}
+
+func (c Cursor) queryTail() string {
 	return fmt.Sprintf(
-		"OFFSET %d LIMIT %d ORDER BY %s %s",
-		c.offset,
+		"LIMIT %d OFFSET %d",
 		c.pageSize,
-		c.orderBy,
-		string(c.order),
+		c.offset,
 	)
 }
 
-func (c *Client) NewCursor(cursor Cursor) CursorKey {
+func (c *Client) NewCursor(pageSize int, orderBy string, order Order, fn CursorFunc) CursorKey {
+	cursor := Cursor{
+		offset:   0,
+		pageSize: pageSize,
+		order:    order,
+		orderBy:  orderBy,
+		exec:     fn,
+	}
 	// TODO: handle this error?
 	id, _ := uuid.NewUUID()
 	key := CursorKey(id)
@@ -54,68 +71,30 @@ func (c *Client) DestroyCursor(key CursorKey) {
 	delete(c.cursors, key)
 }
 
-type AllCursor struct {
-	cursorShared
+func AllFiles() CursorFunc {
+	return func(ctx context.Context, tail string, db *sqlx.DB) (*sqlx.Rows, error) {
+		query := "SELECT * FROM files " + tail
+		log.Printf("running query: %s\n", query)
+		return db.QueryxContext(ctx, query)
+	}
 }
 
-func (c *AllCursor) query(ctx context.Context, db *sqlx.DB) (*sqlx.Rows, error) {
-	return db.QueryxContext(ctx, "SELECT * FROM files "+c.queryTail())
+func FileNameSearch(name string) CursorFunc {
+	return func(ctx context.Context, tail string, db *sqlx.DB) (*sqlx.Rows, error) {
+		query := "SELECT * FROM files WHERE files.name LIKE ? " + tail
+		log.Printf("running query: %s\n", query)
+		return db.QueryxContext(ctx, query, "%"+name+"%")
+	}
 }
 
-func (c *AllCursor) setError(err error) {
-	c.err = err
-}
-
-func (c *AllCursor) setDirty(b bool) {
-	c.dirty = b
-}
-
-func (c *AllCursor) nextPage() {
-	c.offset += c.pageSize
-}
-
-type FileNameCursor struct {
-	search string
-	cursorShared
-}
-
-func (c *FileNameCursor) query(ctx context.Context, db *sqlx.DB) (*sqlx.Rows, error) {
-	return db.QueryxContext(ctx, "SELECT * FROM files WHERE name LIKE ? "+c.queryTail(), "%"+c.search+"%")
-}
-
-func (c *FileNameCursor) setError(err error) {
-	c.err = err
-}
-
-func (c *FileNameCursor) setDirty(b bool) {
-	c.dirty = b
-}
-
-func (c *FileNameCursor) nextPage() {
-	c.offset += c.pageSize
-}
-
-type TagCursor struct {
-	tag string
-	cursorShared
-}
-
-func (c *TagCursor) query(ctx context.Context, db *sqlx.DB) (*sqlx.Rows, error) {
-	return db.QueryxContext(
-		ctx,
-		"SELECT * FROM files JOIN tags WHERE file.id = tags.id AND tags.value LIKE ?"+c.queryTail(),
-		"%"+c.tag+"%",
-	)
-}
-
-func (c *TagCursor) setError(err error) {
-	c.err = err
-}
-
-func (c *TagCursor) setDirty(b bool) {
-	c.dirty = b
-}
-
-func (c *TagCursor) nextPage() {
-	c.offset += c.pageSize
+func FileTagSearch(tag string) CursorFunc {
+	return func(ctx context.Context, tail string, db *sqlx.DB) (*sqlx.Rows, error) {
+		query := "SELECT * FROM files JOIN tags WHERE files.id = tags.id AND tags.value LIKE ?" + tail
+		log.Printf("running query: %s\n", query)
+		return db.QueryxContext(
+			ctx,
+			query,
+			"%"+tag+"%",
+		)
+	}
 }

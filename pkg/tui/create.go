@@ -72,7 +72,6 @@ func (m *manageView) View() []string {
 func makeKeyInternal(path string, duration time.Duration, store store.Client) (string, error) {
 	key := data.RandomKey()
 	access := data.Access{
-		Path:     path,
 		Key:      key,
 		UserCode: "",
 		Created:  time.Now(),

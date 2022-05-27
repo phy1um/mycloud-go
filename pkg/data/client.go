@@ -16,6 +16,11 @@ type client struct {
 	rootPath string
 }
 
+type keyCrossFile struct {
+	Access
+	File
+}
+
 func NewClient(db *sqlx.DB, serveFrom string) (*client, error) {
 
 	return &client{
@@ -30,8 +35,8 @@ func (c client) Fetch(key string, code string) ([]byte, error) {
 	}
 
 	log.Printf("fetching key=%s, code=%s\n", key, code)
-	a := Access{}
-	err := c.db.Get(&a, "SELECT * from access_keys WHERE key=$1", key)
+	a := keyCrossFile{}
+	err := c.db.Get(&a, "SELECT * from access_keys JOIN files WHERE access_keys.key=$1", key)
 	if err != nil {
 		return nil, err
 	}

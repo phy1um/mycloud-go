@@ -3,8 +3,10 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sshtest/pkg/data"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -68,13 +70,25 @@ func (c *Client) GetTags(ctx context.Context, f *data.File) (data.TagSet, error)
 }
 
 func (c *Client) GetFiles(ctx context.Context, cursor CursorKey) ([]data.File, error) {
-	rows, err := c.nextPage(ctx, cursor)
+	cursorValue, ok := c.cursors[cursor]
+	if !ok {
+		return nil, fmt.Errorf("no such cursor: %s", uuid.UUID(cursor).String())
+	}
+	rows, err := cursorValue.query(ctx, c.db)
+	cursorValue.nextPage()
 	if err != nil {
 		return nil, err
 	}
 
 	var files []data.File
-	err = rows.Scan(&files)
+	for rows.Next() {
+		var file data.File
+		err = rows.StructScan(&file)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, file)
+	}
 
 	return files, err
 }
