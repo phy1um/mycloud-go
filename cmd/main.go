@@ -52,6 +52,7 @@ func main() {
 	annotatedLogger := log.Ctx(ctx).With().
 		Str("app-version", cfg.Meta.Version).
 		Str("database", cfg.App.DBFile).
+		Stack().
 		Logger()
 	ctx = annotatedLogger.WithContext(ctx)
 

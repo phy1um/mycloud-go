@@ -2,12 +2,12 @@ package data
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -32,26 +32,30 @@ func NewClient(db *sqlx.DB, serveFrom string) (*client, error) {
 
 func (c client) Fetch(ctx context.Context, key string, code string) ([]byte, error) {
 	if key == "" {
-		return nil, errors.New("cannot fetch null key, bad request")
+		return nil, fmt.Errorf("no resource key provided")
 	}
 
-	log.Printf("fetching key=%s, code=%s\n", key, code)
+	log := log.Ctx(ctx).With().Str("key", key).Logger()
+	log.Info().Msg("fetching resource")
+	ctx = log.WithContext(ctx)
+
 	a := keyCrossFile{}
-	err := c.db.Get(&a, "SELECT * from access_keys JOIN files WHERE access_keys.key=$1", key)
+	err := c.db.Get(&a, "SELECT * from access_keys JOIN files WHERE key=$1", key)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to query database for key")
 	}
 
 	ok, err := a.Can(code)
 	if !ok {
-		return nil, err
+		return nil, errors.Wrap(err, "access not granted to resource")
 	}
 
-	return c.getFileContent(a.Path)
+	return c.getFileContent(ctx, a.Path)
 }
 
-func (c client) getFileContent(path string) ([]byte, error) {
+func (c client) getFileContent(ctx context.Context, path string) ([]byte, error) {
 	fullPath := fmt.Sprintf("%s%s", c.rootPath, path)
-	log.Printf("fetching file: %s\n", fullPath)
+	logger := log.Ctx(ctx).With().Str("file-path", fullPath).Logger()
+	logger.Info().Msg("read file from filesystem")
 	return ioutil.ReadFile(fullPath)
 }

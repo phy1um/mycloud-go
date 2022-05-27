@@ -20,6 +20,8 @@ type fetchRequest struct {
 	Code string `json:"code"`
 }
 
+type ctxHttpFunc func(context.Context, http.ResponseWriter, *http.Request)
+
 func NewServer(ctx context.Context, fetchClient *client) server {
 	return server{
 		ctx:   ctx,
@@ -27,13 +29,7 @@ func NewServer(ctx context.Context, fetchClient *client) server {
 	}
 }
 
-func (s server) Fetch(w http.ResponseWriter, req *http.Request) {
-	ctx := s.ctx
-	log.Ctx(ctx).UpdateContext(func(c zerolog.Context) zerolog.Context {
-		return c.Str("request-path", req.URL.Path).
-			Str("request-method", req.Method)
-	})
-
+func (s server) Fetch(ctx context.Context, w http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
 	b, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -51,24 +47,32 @@ func (s server) Fetch(w http.ResponseWriter, req *http.Request) {
 }
 
 func serviceError(ctx context.Context, w http.ResponseWriter, err error) {
-	log.Ctx(ctx).Err(err).Msg("service error")
+	log.Ctx(ctx).Error().Stack().Err(err).Msg("service error")
 	w.WriteHeader(500)
 	w.Write([]byte("error: " + err.Error()))
 }
 
 func (s server) DefineServer(mux *http.ServeMux) {
-	mux.HandleFunc("/", withPathParam("/fetch/", s.Fetch))
+	mux.HandleFunc("/", withPathParam(s.ctx, "/fetch/", s.Fetch))
 }
 
-func withPathParam(prefix string, fn http.HandlerFunc) http.HandlerFunc {
+func withPathParam(ctx context.Context, prefix string, fn ctxHttpFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if !strings.HasPrefix(req.URL.Path, prefix) {
 			return
 		}
 
+		wlog := log.Ctx(ctx).With().
+			Str("http-path", req.URL.Path).
+			Str("http-method", req.Method).
+			Dict("http-headers", zerolog.Dict().Fields(req.Header)).
+			Logger()
+
+		wctx := wlog.WithContext(ctx)
+
 		path := strings.TrimPrefix(req.URL.Path, prefix)
-		//log.Printf("trimmed %s -> %s", req.URL.Path, path)
 		req.URL.Path = path
-		fn(w, req)
+
+		fn(wctx, w, req)
 	}
 }

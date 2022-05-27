@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) CreateFile(ctx context.Context, id string, path string, tags data.TagSet) error {
@@ -50,7 +51,7 @@ func (c *Client) GetFiles(ctx context.Context, cursor CursorKey) ([]*data.File, 
 	rows, err := cursorValue.query(ctx, c.db)
 	cursorValue.nextPage()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get files")
 	}
 
 	var files []*data.File
