@@ -7,7 +7,6 @@ import (
 	"os"
 	"sshtest/pkg/data"
 	"sshtest/pkg/store"
-	"time"
 
 	"github.com/charmbracelet/wish/scp"
 	"github.com/gliderlabs/ssh"
@@ -55,15 +54,9 @@ func (w serverWriter) Write(s ssh.Session, file *scp.FileEntry) (int64, error) {
 		return 0, fmt.Errorf("failed to write file: %q: %w", file.Filepath, err)
 	}
 
-	trackedFile := data.File{
-		Id:      fileName,
-		Path:    file.Filepath,
-		Created: time.Now(),
-	}
-
 	tags := data.TagSet([]string{"new"})
 
-	w.store.CreateFile(s.Context(), &trackedFile, tags)
+	w.store.CreateFile(s.Context(), fileName, file.Filepath, tags)
 
 	if err != nil {
 		return 0, err

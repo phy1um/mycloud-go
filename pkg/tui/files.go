@@ -27,7 +27,7 @@ func intmin(a int, b int) int {
 type fileView struct {
 	ctx      context.Context
 	cursor   int
-	files    []data.File
+	files    []*data.File
 	store    store.Client
 	dbCursor store.CursorKey
 	err      error
@@ -77,7 +77,7 @@ func (f *fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 				return f, nil
 			}
 			st.PushView(NewManageView(
-				&f.files[f.cursor],
+				f.files[f.cursor],
 				f.store,
 			))
 			return nil, nil

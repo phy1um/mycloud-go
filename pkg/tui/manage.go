@@ -69,7 +69,7 @@ func NewManageView(file *data.File, store store.Client) View {
 }
 
 func (m *manageView) Enter() {
-	tags, err := m.store.GetTags(context.Background(), m.file)
+	tags, err := m.store.GetTags(context.Background(), m.file.Id)
 	if err != nil {
 		m.err = err
 		return

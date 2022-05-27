@@ -90,7 +90,7 @@ func FileNameSearch(name string) CursorFunc {
 
 func FileTagSearch(tag string) CursorFunc {
 	return func(ctx context.Context, tail string, db *sqlx.DB) (*sqlx.Rows, error) {
-		query := "SELECT * FROM files JOIN tags WHERE files.id = tags.id AND tags.value LIKE ?" + tail
+		query := "SELECT (files.id, files.path, files.name, files.created) FROM files JOIN tags WHERE files.id = tags.id AND tags.value LIKE ? " + tail
 		log.Printf("running query: %s\n", query)
 		return db.QueryxContext(
 			ctx,
