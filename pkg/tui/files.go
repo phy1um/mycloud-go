@@ -33,7 +33,13 @@ type fileView struct {
 	err      error
 }
 
-func NewFileView(ctx context.Context, store store.Client, pageSize int) *fileView {
+func NewFileAllView(ctx context.Context, s store.Client) *fileView {
+	cc := store.AllCursor{
+		pageSize: 10,
+	}
+}
+
+func NewFileView(ctx context.Context, store store.Client) *fileView {
 	log.Printf("making file view with store = %+v", store)
 	return &fileView{
 		ctx:      ctx,
@@ -94,18 +100,18 @@ func (f *fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	return f, nil
 }
 
-func (f *fileView) View() string {
+func (f *fileView) View() []string {
 	if f.err != nil {
-		return fmt.Sprintf(":: File View Error: %s", f.err.Error())
+		return []string{fmt.Sprintf(":: File View Error: %s", f.err.Error())}
 	}
-	s := " :: File View :: \n"
+	s := []string{" :: File View ::"}
 	for i, file := range f.files {
 		if i == f.cursor {
-			s += fmt.Sprintf("[*] %s\n", file.Path)
+			s = append(s, fmt.Sprintf("[*] %s", file.Path))
 		} else {
-			s += fmt.Sprintf("[ ] %s\n", file.Path)
+			s = append(s, fmt.Sprintf("[ ] %s", file.Path))
 		}
 	}
-	s += "\n -- Use J/K for down/up. Q to quit --\n"
+	s = append(s, "\n -- Use J/K for down/up. Q to quit --")
 	return s
 }

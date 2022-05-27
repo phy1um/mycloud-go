@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -81,7 +80,7 @@ func (m menu) action(st *State) (View, tea.Cmd) {
 	return item.Action(st)
 }
 
-func (m menu) render() string {
+func (m menu) render() []string {
 	log.Printf("rendering menu, base=\"%s\"\n", m.renderBase)
 	li := make([]string, len(m.items))
 	for i, item := range m.items {
@@ -95,5 +94,5 @@ func (m menu) render() string {
 		}
 		li = append(li, fmt.Sprintf(m.renderBase, sel, item.Name()))
 	}
-	return strings.Join(li, "\n")
+	return li
 }

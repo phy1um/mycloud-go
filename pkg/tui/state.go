@@ -4,6 +4,7 @@ import (
 	"log"
 	"sshtest/config"
 	"sshtest/pkg/store"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/jmoiron/sqlx"
@@ -12,7 +13,7 @@ import (
 type View interface {
 	Enter()
 	Exit()
-	View() string
+	View() []string
 	Update(tea.Msg, *State) (View, tea.Cmd)
 }
 
@@ -42,7 +43,7 @@ func (s *State) Init() tea.Cmd {
 	tagSet := []string{"all"}
 	tagSet = append(tagSet, s.cfg.Manage.Buckets...)
 
-	baseView := bucketView{
+	baseView := fileSearchView{
 		store: s.store,
 		tags:  tagSet,
 	}
@@ -93,7 +94,8 @@ func (s *State) View() string {
 		return " ::: LOADING ::: "
 	}
 	s.drop = false
-	return s.Top().View()
+	lines := s.Top().View()
+	return strings.Join(lines, "\n")
 }
 
 func (s *State) PushView(v View) {

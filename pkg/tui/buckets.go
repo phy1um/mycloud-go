@@ -3,64 +3,96 @@ package tui
 import (
 	"context"
 	"fmt"
+	"log"
 	"sshtest/pkg/store"
-	"strings"
+	"sshtest/pkg/tui/styles"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
-type bucketView struct {
+type SearchKind string
+
+const (
+	All  SearchKind = "*"
+	Name SearchKind = "name"
+	Tag  SearchKind = "tag"
+)
+
+type fileSearchView struct {
 	tags   []string
 	cursor int
 	store  store.Client
+	box    styles.Box
+	input  textinput.Model
+	search SearchKind
 }
 
-func (b bucketView) Enter() {}
-func (b bucketView) Exit()  {}
+func (b *fileSearchView) Enter() {
+	b.input = textinput.New()
+	b.input.Placeholder = "File Name"
+	b.input.Focus()
+	b.search = All
+}
 
-func (b bucketView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
+func (b *fileSearchView) Exit() {}
+
+func (b *fileSearchView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "j", "down":
-			return bucketView{
-				store:  b.store,
-				tags:   b.tags,
-				cursor: intmin(b.cursor+1, len(b.tags)-1),
-			}, nil
-		case "k", "up":
-			return bucketView{
-				store:  b.store,
-				tags:   b.tags,
-				cursor: intmax(b.cursor-1, 0),
-			}, nil
-		case "x", "enter":
-			tag := b.tags[b.cursor]
-
-			if tag == "all" {
-				tag = ""
+		case "tab":
+			if b.search == Name {
+				b.search = Tag
+			} else if b.search == Tag {
+				b.search = All
+			} else {
+				b.search = Name
 			}
+			return b, nil
+		case "enter":
+			if b.search == All {
+				fv := NewFileView(context.Background(), b.store, 10)
+				st.PushView(fv)
+			} else if b.search == Tag {
 
+			}
 			fv := NewFileView(context.Background(), b.store, 10)
 			st.PushView(fv)
 			return nil, nil
+		default:
+			log.Printf("updating textinput\n")
+			n, cmd := b.input.Update(msg)
+			b.input = n
+			return b, cmd
 		}
 	}
 
 	return b, nil
 }
 
-func (b bucketView) View() string {
-	parts := make([]string, len(b.tags)+2)
-	parts = append(parts, "=== Select Tag to View ===")
-	for i, tag := range b.tags {
-		sel := " "
-		if i == b.cursor {
-			sel = "*"
-		}
+func (b fileSearchView) View() []string {
+	title := styles.Title(lipgloss.NewStyle()).
+		BorderStyle(lipgloss.NormalBorder()).
+		MarginLeft(3).
+		Render("File Search")
+	titleC := lipgloss.PlaceHorizontal(b.box.Width, lipgloss.Center, title)
 
-		parts = append(parts, fmt.Sprintf("[%s] Tag [%s]", sel, tag))
+	var main string
+	if b.search != All {
+		main = styles.Highlight(lipgloss.NewStyle()).
+			MarginLeft(3).
+			Render(b.input.View())
 	}
-	parts = append(parts, "\n -- Use J/K for down/up. Q to go back --\n")
-	return strings.Join(parts, "\n")
+
+	kind := lipgloss.NewStyle().
+		Background(lipgloss.Color("#000044")).
+		Foreground(lipgloss.Color("#FFFFFF")).
+		MarginLeft(3).
+		Render(fmt.Sprintf("<< %s >>", b.search))
+
+	btm := b.box.Height - (lipgloss.Height(titleC) + lipgloss.Height(main))
+	footer := lipgloss.PlaceVertical(btm, lipgloss.Bottom, "-- Use J/K for down/up. Q to go back --")
+	return []string{lipgloss.JoinVertical(lipgloss.Top, titleC, main, kind, footer)}
 }

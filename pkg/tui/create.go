@@ -59,15 +59,14 @@ func (m *manageView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	return m, nil
 }
 
-func (m *manageView) View() string {
-	return fmt.Sprintf(`
-::: Manage File [%s] :::
-
-%s
-
-::: Enter to confirm, Esc to go back, J/K to increase/decrease time :::`,
-		m.displayName,
-		m.options.render())
+func (m *manageView) View() []string {
+	res := []string{
+		fmt.Sprintf("::: Manage File [%s] :::", m.displayName),
+		"",
+	}
+	res = append(res, m.options.render()...)
+	res = append(res, "", "::: Enter to confirm, Esc to go back, J/K to increase/decrease time :::")
+	return res
 }
 
 func makeKeyInternal(path string, duration time.Duration, store store.Client) (string, error) {
@@ -96,11 +95,11 @@ type createStatusView struct {
 
 func (c createStatusView) Enter() {}
 func (c createStatusView) Exit()  {}
-func (c createStatusView) View() string {
+func (c createStatusView) View() []string {
 	if c.err != nil {
-		return fmt.Sprintf("ERROR: %s", c.err.Error())
+		return []string{fmt.Sprintf("ERROR: %s", c.err.Error())}
 	}
-	return fmt.Sprintf("Created access with key = %s", c.key)
+	return []string{fmt.Sprintf("Created access with key = %s", c.key)}
 }
 
 func (c createStatusView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
@@ -115,16 +114,13 @@ type setTagView struct {
 
 func (s setTagView) Enter() {}
 func (s setTagView) Exit()  {}
-func (s setTagView) View() string {
-	return fmt.Sprintf(`
-::: Set Tags for File [%s] :::
-
-%s
-
-::: --- :::`,
-		s.displayName,
-		s.options.render(),
-	)
+func (s setTagView) View() []string {
+	res := []string{
+		fmt.Sprintf("::: Set Tags for File [%s] :::", s.displayName),
+		""}
+	res = append(res, s.options.render()...)
+	res = append(res, "::: --- :::")
+	return res
 }
 
 func (s *setTagView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
