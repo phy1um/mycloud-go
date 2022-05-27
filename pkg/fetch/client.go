@@ -1,9 +1,10 @@
-package data
+package fetch
 
 import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"sshtest/pkg/data"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -18,8 +19,8 @@ type client struct {
 }
 
 type keyCrossFile struct {
-	Access
-	File
+	data.Access
+	data.File
 }
 
 func NewClient(db *sqlx.DB, serveFrom string) (*client, error) {

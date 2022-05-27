@@ -10,7 +10,6 @@ import (
 	"os"
 	"sshtest/config"
 	internal "sshtest/pkg"
-	"sshtest/pkg/data"
 	"sshtest/pkg/tui"
 	"time"
 
@@ -22,6 +21,8 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	scp2 "sshtest/pkg/scp"
+
+	"sshtest/pkg/fetch"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -95,12 +96,12 @@ func main() {
 	mux.Handle("/health", health)
 
 	// Initialize our file retrieval server
-	client, err := data.NewClient(db, cfg.App.FilePath)
+	client, err := fetch.NewClient(db, cfg.App.FilePath)
 	if err != nil {
 		log.Ctx(ctx).Fatal().Err(err).Msg("failed to create data client")
 	}
 
-	ds := data.NewServer(ctx, client)
+	ds := fetch.NewServer(ctx, client)
 	ds.DefineServer(mux)
 
 	httpAddr := fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Serve.Port)
