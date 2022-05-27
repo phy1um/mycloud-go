@@ -94,9 +94,9 @@ func (f *fileView) View() []string {
 	s := []string{" :: File View ::"}
 	for i, file := range f.files {
 		if i == f.cursor {
-			s = append(s, fmt.Sprintf("[*] %s", file.Path))
+			s = append(s, fmt.Sprintf("[*] %s (%s)", file.Name, file.Path))
 		} else {
-			s = append(s, fmt.Sprintf("[ ] %s", file.Path))
+			s = append(s, fmt.Sprintf("[ ] %s (%s)", file.Name, file.Path))
 		}
 	}
 	s = append(s, "\n -- Use J/K for down/up. Q to quit --")

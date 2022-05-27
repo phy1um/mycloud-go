@@ -1,6 +1,9 @@
 package store
 
-import "sshtest/pkg/data"
+import (
+	"context"
+	"sshtest/pkg/data"
+)
 
 func (c *Client) CreateAccessKey(key *data.Access) error {
 	_, err := c.db.NamedExec(
@@ -8,4 +11,23 @@ func (c *Client) CreateAccessKey(key *data.Access) error {
 		key,
 	)
 	return err
+}
+
+func (c *Client) GetAccessKeys(ctx context.Context, file *data.File) ([]*data.Access, error) {
+	res, err := c.db.QueryxContext(ctx, "SELECT * FROM access_keys WHERE file_id = ?", file.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	var keys []*data.Access
+	for res.Next() {
+		var access data.Access
+		err = res.StructScan(&access)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, &access)
+	}
+
+	return keys, nil
 }

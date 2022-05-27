@@ -18,6 +18,11 @@ import (
 type manageView struct {
 	options menu
 	file    *data.File
+	tags    data.TagSet
+	access  []*data.Access
+	box     styles.Box
+	store   store.Client
+	err     error
 }
 
 func NewManageView(file *data.File, store store.Client) View {
@@ -25,7 +30,7 @@ func NewManageView(file *data.File, store store.Client) View {
 		fnItem{
 			name: "Create Access Key",
 			do: func(st *State) (View, tea.Cmd) {
-				key, err := makeKeyInternal(file.Path, time.Hour*48, store)
+				key, err := makeKeyInternal(file.Id, file.Path, time.Hour*48, store)
 				st.PopView()
 				st.PushView(createStatusView{
 					key: key,
@@ -35,18 +40,25 @@ func NewManageView(file *data.File, store store.Client) View {
 			},
 		},
 		fnItem{
-			name: "Manage Tags",
+			name: "Add Tag",
 			do: func(st *State) (View, tea.Cmd) {
 				st.PushView(&setTagView{
-					file:  file,
 					store: store,
+					file:  file,
 				})
+				return nil, nil
+			},
+		},
+		fnItem{
+			name: "Remove Tags",
+			do: func(st *State) (View, tea.Cmd) {
 				return nil, nil
 			},
 		},
 	}
 	return &manageView{
-		file: file,
+		file:  file,
+		store: store,
 		options: menu{
 			items:      items,
 			renderBase: " - [%s] :: %s",
@@ -56,8 +68,24 @@ func NewManageView(file *data.File, store store.Client) View {
 	}
 }
 
-func (m *manageView) Enter() {}
-func (m *manageView) Exit()  {}
+func (m *manageView) Enter() {
+	tags, err := m.store.GetTags(context.Background(), m.file)
+	if err != nil {
+		m.err = err
+		return
+	}
+	m.tags = tags
+
+	access, err := m.store.GetAccessKeys(context.Background(), m.file)
+	if err != nil {
+		m.err = err
+		return
+	}
+	m.access = access
+}
+
+func (m *manageView) Exit() {}
+
 func (m *manageView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -74,31 +102,19 @@ func (m *manageView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 }
 
 func (m *manageView) View() []string {
-	res := []string{
-		fmt.Sprintf("::: Manage File [%s] :::", m.file.Name),
-		"",
-	}
-	res = append(res, m.options.render()...)
-	res = append(res, "", "::: Enter to confirm, Esc to go back, J/K to increase/decrease time :::")
-	return res
-}
-
-func makeKeyInternal(path string, duration time.Duration, store store.Client) (string, error) {
-	key := data.RandomKey()
-	access := data.Access{
-		Key:      key,
-		UserCode: "",
-		Created:  time.Now(),
-		Until:    time.Now().Add(duration),
-	}
-	log.Printf("creating access key for %s: %s\n", path, key)
-	err := store.CreateAccessKey(&access)
-
-	if err != nil {
-		return "", err
-	}
-
-	return key, nil
+	title := styles.Title(m.box.Style()).Render("Manage File")
+	details := styles.Body(m.box.Style()).Border(lipgloss.NormalBorder()).Render(
+		fmt.Sprintf("Name: %s\nPath: %s\nCreated: %s\n", m.file.Name, m.file.Path, m.file.Created.String()),
+	)
+	tags := styles.Body(m.box.Style()).Border(lipgloss.NormalBorder()).Render(
+		"Tags\n\n" + strings.Join(m.tags, "\n"),
+	)
+	access := styles.Body(m.box.Style()).Border(lipgloss.NormalBorder()).Render(
+		accessString(m.access),
+	)
+	meat := lipgloss.JoinHorizontal(lipgloss.Left, tags, access)
+	body := styles.Body(m.box.Style()).Render(strings.Join(m.options.render(), "\n"))
+	return []string{lipgloss.JoinVertical(lipgloss.Top, title, details, meat, body)}
 }
 
 type createStatusView struct {
@@ -120,23 +136,13 @@ func (c createStatusView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 }
 
 type setTagView struct {
-	file        *data.File
-	box         styles.Box
-	input       textinput.Model
-	store       store.Client
-	tags        []string
-	err         error
-	focusAddTag bool
-	cursor      int
+	file  *data.File
+	box   styles.Box
+	input textinput.Model
+	store store.Client
 }
 
 func (s *setTagView) Enter() {
-	tags, err := s.store.GetTags(context.Background(), s.file)
-	if err != nil {
-		s.err = err
-		return
-	}
-	s.tags = tags
 	s.input = textinput.New()
 	s.input.Placeholder = "New Tag Name"
 	s.input.Focus()
@@ -145,58 +151,57 @@ func (s *setTagView) Enter() {
 func (s setTagView) Exit() {}
 
 func (s setTagView) View() []string {
-	if s.err != nil {
-		return []string{s.err.Error()}
-	}
-
-	title := styles.Title(s.box.Style()).Render(fmt.Sprintf("Manage File [%s]", s.file.Name))
+	title := styles.Title(s.box.Style()).Render(fmt.Sprintf("Tag File"))
 	details := styles.Body(s.box.Style()).Border(lipgloss.NormalBorder()).Render(
-		fmt.Sprintf("Path: %s\nCreated: %s\n", s.file.Path, s.file.Created.String()),
-	)
-	tags := styles.Body(s.box.Style()).Border(lipgloss.NormalBorder()).Render(
-		"Tags\n\n" + strings.Join(s.tags, "\n"),
+		fmt.Sprintf("Name: %s\nPath: %s\nCreated: %s\n", s.file.Name, s.file.Path, s.file.Created.String()),
 	)
 	input := s.input.View()
 
-	return []string{lipgloss.JoinVertical(lipgloss.Top, title, details, tags, input)}
+	return []string{lipgloss.JoinVertical(lipgloss.Top, title, details, input)}
 }
 
 func (s *setTagView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "enter":
-			newTag := s.input.Value()
-			if len(newTag) == 0 {
-				break
+		if msg.String() == "enter" {
+			if len(s.input.Value()) > 0 {
+				s.store.AddTag(context.Background(), s.file.Id, s.input.Value())
+				st.PopView()
+				st.PopView()
+				return nil, nil
 			}
-			err := s.store.AddTag(context.Background(), s.file.Id, newTag)
-			if err == nil {
-				s.tags = append(s.tags, newTag)
-				s.input.SetValue("")
-			} else {
-				s.err = err
-			}
-		default:
-			input, rs := s.input.Update(msg)
-			s.input = input
-			return s, rs
 		}
 	}
-	return s, nil
+	input, rs := s.input.Update(msg)
+	s.input = input
+	return s, rs
 }
 
-/*
-func setTag(id string) func(tag string, st *State) {
-	return func(tag string, st *State) {
-		file := data.File{
-			Id: id,
-		}
-		log.Printf("trying to update tag for: %s to %s", id, tag)
-		_, err := st.db.NamedExec("UPDATE files SET tag=:tag WHERE id = \""+id+"\"", &file)
-		if err != nil {
-			log.Printf("failed to update tag: %s (%s): %s", id, tag, err.Error())
-		}
+func accessString(keys []*data.Access) string {
+	var sb strings.Builder
+	sb.WriteString(" Access Keys\n\n")
+	for _, k := range keys {
+		b := fmt.Sprintf("[%s] (until %s)\n", k.Key, k.Until.String())
+		sb.WriteString(b)
 	}
+	return sb.String()
 }
-*/
+
+func makeKeyInternal(id string, path string, duration time.Duration, store store.Client) (string, error) {
+	key := data.RandomKey()
+	access := data.Access{
+		FileId:   id,
+		Key:      key,
+		UserCode: "",
+		Created:  time.Now(),
+		Until:    time.Now().Add(duration),
+	}
+	log.Printf("creating access key for %s: %s\n", path, key)
+	err := store.CreateAccessKey(&access)
+
+	if err != nil {
+		return "", err
+	}
+
+	return key, nil
+}
