@@ -77,7 +77,6 @@ func (b *fileSearchView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 
 func (b fileSearchView) View() []string {
 	title := styles.Title(lipgloss.NewStyle()).
-		BorderStyle(lipgloss.NormalBorder()).
 		MarginLeft(3).
 		Render("File Search")
 	titleC := lipgloss.PlaceHorizontal(b.box.Width, lipgloss.Center, title)

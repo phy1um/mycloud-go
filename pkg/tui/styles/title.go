@@ -17,7 +17,8 @@ func (b Box) Style() lipgloss.Style {
 
 func Title(from lipgloss.Style) lipgloss.Style {
 	return from.Copy().
-		MarginLeft(1).
+		Border(lipgloss.NormalBorder()).
+		MarginLeft(5).
 		MarginRight(5).
 		Padding(0, 1).
 		Bold(true)

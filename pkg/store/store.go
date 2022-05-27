@@ -61,9 +61,13 @@ func (c *Client) GetTags(ctx context.Context, f *data.File) (data.TagSet, error)
 	}
 
 	var tags data.TagSet
-	err = rows.Scan(&tags)
-	if err != nil {
-		return nil, err
+	for rows.Next() {
+		var tag string
+		err = rows.Scan(&tag)
+		if err != nil {
+			return nil, err
+		}
+		tags = append(tags, tag)
 	}
 
 	return tags, nil
@@ -91,4 +95,23 @@ func (c *Client) GetFiles(ctx context.Context, cursor CursorKey) ([]data.File, e
 	}
 
 	return files, err
+}
+
+func (c *Client) AddTag(ctx context.Context, fileId string, tag string) error {
+	txn, err := c.db.BeginTxx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = txn.Exec("INSERT INTO tags (id, value) VALUES (?, ?)", fileId, tag)
+	if err != nil {
+		return err
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

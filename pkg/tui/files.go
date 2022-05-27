@@ -69,22 +69,15 @@ func (f *fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "j", "down":
-			return &fileView{
-				files:  f.files,
-				cursor: intmin(f.cursor+1, len(f.files)-1),
-			}, nil
+			f.cursor = intmin(f.cursor+1, len(f.files)-1)
 		case "k", "up":
-			return &fileView{
-				files:  f.files,
-				cursor: intmax(f.cursor-1, 0),
-			}, nil
+			f.cursor = intmax(f.cursor-1, 0)
 		case "x", "enter":
 			if f.files == nil {
 				return f, nil
 			}
 			st.PushView(NewManageView(
-				f.files[f.cursor].Id,
-				f.files[f.cursor].Path,
+				&f.files[f.cursor],
 				f.store,
 			))
 			return nil, nil

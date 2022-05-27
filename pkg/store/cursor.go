@@ -18,6 +18,7 @@ const (
 )
 
 type CursorFunc func(ctx context.Context, tail string, db *sqlx.DB) (*sqlx.Rows, error)
+
 type Cursor struct {
 	offset   int
 	pageSize int

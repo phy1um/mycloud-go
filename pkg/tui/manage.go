@@ -1,28 +1,31 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sshtest/pkg/data"
 	"sshtest/pkg/store"
+	"sshtest/pkg/tui/styles"
+	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type manageView struct {
-	options     menu
-	sub         View
-	path        string
-	displayName string
+	options menu
+	file    *data.File
 }
 
-func NewManageView(path string, displayName string, store store.Client) View {
+func NewManageView(file *data.File, store store.Client) View {
 	items := []item{
 		fnItem{
 			name: "Create Access Key",
 			do: func(st *State) (View, tea.Cmd) {
-				key, err := makeKeyInternal(path, time.Hour*48, store)
+				key, err := makeKeyInternal(file.Path, time.Hour*48, store)
 				st.PopView()
 				st.PushView(createStatusView{
 					key: key,
@@ -31,8 +34,19 @@ func NewManageView(path string, displayName string, store store.Client) View {
 				return nil, nil
 			},
 		},
+		fnItem{
+			name: "Manage Tags",
+			do: func(st *State) (View, tea.Cmd) {
+				st.PushView(&setTagView{
+					file:  file,
+					store: store,
+				})
+				return nil, nil
+			},
+		},
 	}
 	return &manageView{
+		file: file,
 		options: menu{
 			items:      items,
 			renderBase: " - [%s] :: %s",
@@ -61,7 +75,7 @@ func (m *manageView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 
 func (m *manageView) View() []string {
 	res := []string{
-		fmt.Sprintf("::: Manage File [%s] :::", m.displayName),
+		fmt.Sprintf("::: Manage File [%s] :::", m.file.Name),
 		"",
 	}
 	res = append(res, m.options.render()...)
@@ -106,32 +120,67 @@ func (c createStatusView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 }
 
 type setTagView struct {
-	options     menu
-	path        string
-	displayName string
+	file        *data.File
+	box         styles.Box
+	input       textinput.Model
+	store       store.Client
+	tags        []string
+	err         error
+	focusAddTag bool
+	cursor      int
 }
 
-func (s setTagView) Enter() {}
-func (s setTagView) Exit()  {}
+func (s *setTagView) Enter() {
+	tags, err := s.store.GetTags(context.Background(), s.file)
+	if err != nil {
+		s.err = err
+		return
+	}
+	s.tags = tags
+	s.input = textinput.New()
+	s.input.Placeholder = "New Tag Name"
+	s.input.Focus()
+}
+
+func (s setTagView) Exit() {}
+
 func (s setTagView) View() []string {
-	res := []string{
-		fmt.Sprintf("::: Set Tags for File [%s] :::", s.displayName),
-		""}
-	res = append(res, s.options.render()...)
-	res = append(res, "::: --- :::")
-	return res
+	if s.err != nil {
+		return []string{s.err.Error()}
+	}
+
+	title := styles.Title(s.box.Style()).Render(fmt.Sprintf("Manage File [%s]", s.file.Name))
+	details := styles.Body(s.box.Style()).Border(lipgloss.NormalBorder()).Render(
+		fmt.Sprintf("Path: %s\nCreated: %s\n", s.file.Path, s.file.Created.String()),
+	)
+	tags := styles.Body(s.box.Style()).Border(lipgloss.NormalBorder()).Render(
+		"Tags\n\n" + strings.Join(s.tags, "\n"),
+	)
+	input := s.input.View()
+
+	return []string{lipgloss.JoinVertical(lipgloss.Top, title, details, tags, input)}
 }
 
 func (s *setTagView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "j", "down":
-			s.options = s.options.next()
-		case "k", "up":
-			s.options = s.options.prev()
-		case "x", "enter":
-			return s.options.action(st)
+		case "enter":
+			newTag := s.input.Value()
+			if len(newTag) == 0 {
+				break
+			}
+			err := s.store.AddTag(context.Background(), s.file.Id, newTag)
+			if err == nil {
+				s.tags = append(s.tags, newTag)
+				s.input.SetValue("")
+			} else {
+				s.err = err
+			}
+		default:
+			input, rs := s.input.Update(msg)
+			s.input = input
+			return s, rs
 		}
 	}
 	return s, nil
