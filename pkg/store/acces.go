@@ -2,7 +2,8 @@ package store
 
 import (
 	"context"
-	"sshtest/pkg/data"
+
+	"github.com/phy1um/mycloud-go/pkg/data"
 
 	"github.com/rs/zerolog/log"
 )

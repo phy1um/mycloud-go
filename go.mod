@@ -1,4 +1,4 @@
-module sshtest
+module github.com/phy1um/mycloud-go
 
 go 1.18
 

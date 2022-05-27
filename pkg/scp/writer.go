@@ -5,8 +5,9 @@ import (
 	"io"
 	"log"
 	"os"
-	"sshtest/pkg/data"
-	"sshtest/pkg/store"
+
+	"github.com/phy1um/mycloud-go/pkg/data"
+	"github.com/phy1um/mycloud-go/pkg/store"
 
 	"github.com/charmbracelet/wish/scp"
 	"github.com/gliderlabs/ssh"

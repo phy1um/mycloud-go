@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"sshtest/pkg/data"
+
+	"github.com/phy1um/mycloud-go/pkg/data"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

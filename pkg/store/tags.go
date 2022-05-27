@@ -3,7 +3,8 @@ package store
 import (
 	"context"
 	"database/sql"
-	"sshtest/pkg/data"
+
+	"github.com/phy1um/mycloud-go/pkg/data"
 )
 
 func (c *Client) AddTag(ctx context.Context, fileId string, tag string) error {

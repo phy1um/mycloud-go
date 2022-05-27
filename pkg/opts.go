@@ -2,8 +2,9 @@ package internal
 
 import (
 	"context"
-	"sshtest/config"
 	"time"
+
+	"github.com/phy1um/mycloud-go/config"
 
 	"github.com/charmbracelet/wish"
 	"github.com/gliderlabs/ssh"

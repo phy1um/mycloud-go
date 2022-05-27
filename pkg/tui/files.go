@@ -3,8 +3,9 @@ package tui
 import (
 	"context"
 	"fmt"
-	"sshtest/pkg/data"
-	"sshtest/pkg/store"
+
+	"github.com/phy1um/mycloud-go/pkg/data"
+	"github.com/phy1um/mycloud-go/pkg/store"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rs/zerolog/log"

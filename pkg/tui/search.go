@@ -3,8 +3,9 @@ package tui
 import (
 	"context"
 	"fmt"
-	"sshtest/pkg/store"
-	"sshtest/pkg/tui/styles"
+
+	"github.com/phy1um/mycloud-go/pkg/store"
+	"github.com/phy1um/mycloud-go/pkg/tui/styles"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"

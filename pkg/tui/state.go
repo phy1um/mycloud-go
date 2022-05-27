@@ -2,9 +2,10 @@ package tui
 
 import (
 	"context"
-	"sshtest/config"
-	"sshtest/pkg/store"
 	"strings"
+
+	"github.com/phy1um/mycloud-go/config"
+	"github.com/phy1um/mycloud-go/pkg/store"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/jmoiron/sqlx"

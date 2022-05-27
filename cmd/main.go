@@ -8,10 +8,11 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"sshtest/config"
-	internal "sshtest/pkg"
-	"sshtest/pkg/tui"
 	"time"
+
+	"github.com/phy1um/mycloud-go/config"
+	internal "github.com/phy1um/mycloud-go/pkg"
+	"github.com/phy1um/mycloud-go/pkg/tui"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/wish"
@@ -20,9 +21,9 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/jmoiron/sqlx"
 
-	scp2 "sshtest/pkg/scp"
+	scp2 "github.com/phy1um/mycloud-go/pkg/scp"
 
-	"sshtest/pkg/fetch"
+	"github.com/phy1um/mycloud-go/pkg/fetch"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
