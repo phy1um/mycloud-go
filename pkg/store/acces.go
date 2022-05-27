@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"sshtest/pkg/data"
+
+	"github.com/rs/zerolog/log"
 )
 
 func (c *Client) CreateAccessKey(key *data.Access) error {
@@ -14,6 +16,7 @@ func (c *Client) CreateAccessKey(key *data.Access) error {
 }
 
 func (c *Client) GetAccessKeys(ctx context.Context, file *data.File) ([]*data.Access, error) {
+	log.Ctx(ctx).Info().Msgf("get access keys for file %s", file.Id)
 	res, err := c.db.QueryxContext(ctx, "SELECT * FROM access_keys WHERE file_id = ?", file.Id)
 	if err != nil {
 		return nil, err

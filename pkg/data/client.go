@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -29,7 +30,7 @@ func NewClient(db *sqlx.DB, serveFrom string) (*client, error) {
 	}, nil
 }
 
-func (c client) Fetch(key string, code string) ([]byte, error) {
+func (c client) Fetch(ctx context.Context, key string, code string) ([]byte, error) {
 	if key == "" {
 		return nil, errors.New("cannot fetch null key, bad request")
 	}

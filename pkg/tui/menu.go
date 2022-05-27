@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -54,7 +53,6 @@ type menu struct {
 }
 
 func (m menu) next() menu {
-	log.Printf("menu: next()\n")
 	return menu{
 		items:      m.items,
 		cursor:     intmin(m.cursor+1, len(m.items)-1),
@@ -65,7 +63,6 @@ func (m menu) next() menu {
 }
 
 func (m menu) prev() menu {
-	log.Printf("menu: prev()\n")
 	return menu{
 		items:      m.items,
 		cursor:     intmax(m.cursor-1, 0),
@@ -81,7 +78,7 @@ func (m menu) action(st *State) (View, tea.Cmd) {
 }
 
 func (m menu) render() []string {
-	log.Printf("rendering menu, base=\"%s\"\n", m.renderBase)
+	//log.Printf("rendering menu, base=\"%s\"\n", m.renderBase)
 	li := make([]string, len(m.items))
 	for i, item := range m.items {
 		sel := m.sel
@@ -89,7 +86,6 @@ func (m menu) render() []string {
 			sel = m.unsel
 		}
 		if item == nil {
-			log.Printf("nil item in menu @ %d\n", i)
 			continue
 		}
 		li = append(li, fmt.Sprintf(m.renderBase, sel, item.Name()))

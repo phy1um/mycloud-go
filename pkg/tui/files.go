@@ -3,11 +3,11 @@ package tui
 import (
 	"context"
 	"fmt"
-	"log"
 	"sshtest/pkg/data"
 	"sshtest/pkg/store"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rs/zerolog/log"
 )
 
 func intmax(a int, b int) int {
@@ -25,7 +25,6 @@ func intmin(a int, b int) int {
 }
 
 type fileView struct {
-	ctx      context.Context
 	cursor   int
 	files    []*data.File
 	store    store.Client
@@ -33,38 +32,34 @@ type fileView struct {
 	err      error
 }
 
-func NewFileView(ctx context.Context, ss store.Client, pageSize int, fn store.CursorFunc) *fileView {
-	log.Printf("making file view with store = %+v", ss)
+func NewFileView(ss store.Client, pageSize int, fn store.CursorFunc) *fileView {
 	return &fileView{
-		ctx:      ctx,
 		cursor:   0,
 		store:    ss,
 		dbCursor: ss.NewCursor(pageSize, "name", store.Descend, fn),
 	}
 }
 
-func (f *fileView) Enter() {
+func (f *fileView) Enter(ctx context.Context) {
 	var err error
 
-	files, err := f.store.GetFiles(f.ctx, f.dbCursor)
+	files, err := f.store.GetFiles(ctx, f.dbCursor)
 	if err != nil {
+		log.Ctx(ctx).Error().Stack().Err(err).Msg("failed to get files")
 		f.err = err
 		return
 	}
 
 	f.files = files
 
-	log.Printf("found %d files to display\n", len(f.files))
-	for _, f := range f.files {
-		log.Printf(" - %s\n", f.Path)
-	}
+	log.Ctx(ctx).Info().Msgf("found %d files to display\n", len(f.files))
 }
 
-func (f *fileView) Exit() {
+func (f *fileView) Exit(_ context.Context) {
 	f.store.DestroyCursor(f.dbCursor)
 }
 
-func (f *fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
+func (f *fileView) Update(ctx context.Context, msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -76,6 +71,7 @@ func (f *fileView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 			if f.files == nil {
 				return f, nil
 			}
+			log.Ctx(ctx).Info().Msg("selecting file to view")
 			st.PushView(NewManageView(
 				f.files[f.cursor],
 				f.store,

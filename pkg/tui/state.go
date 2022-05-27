@@ -1,43 +1,45 @@
 package tui
 
 import (
-	"log"
+	"context"
 	"sshtest/config"
 	"sshtest/pkg/store"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog/log"
 )
 
 type View interface {
-	Enter()
-	Exit()
+	Enter(context.Context)
+	Exit(context.Context)
 	View() []string
-	Update(tea.Msg, *State) (View, tea.Cmd)
+	Update(context.Context, tea.Msg, *State) (View, tea.Cmd)
 }
 
 type State struct {
 	viewStack []View
 	store     store.Client
 	cfg       *config.AppConfig
+	ctx       context.Context
 	done      bool
 	drop      bool
 }
 
-func NewState(cfg *config.AppConfig, db *sqlx.DB) *State {
-	log.Printf("initializing state with DB=%v\n", db)
+func NewState(ctx context.Context, cfg *config.AppConfig, db *sqlx.DB) *State {
+	log.Ctx(ctx).Info().Msg("initializing TUI state")
 	return &State{
+		ctx:   ctx,
 		cfg:   cfg,
 		store: store.NewClient(db),
 	}
 }
 
 func (s *State) Init() tea.Cmd {
-	log.Printf("Has some store.. %+v\n", s.store)
 	err := s.store.Migrate()
 	if err != nil {
-		log.Printf("failed to run migrate: %s", err.Error())
+		log.Ctx(s.ctx).Error().Stack().Err(err).Msg("failed to run migrate")
 	}
 
 	tagSet := []string{"all"}
@@ -81,7 +83,7 @@ func (s *State) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	top := s.Top()
-	newTop, cmd := top.Update(msg, s)
+	newTop, cmd := top.Update(s.ctx, msg, s)
 	if newTop != nil {
 		s.viewStack[len(s.viewStack)-1] = newTop
 	}
@@ -100,12 +102,12 @@ func (s *State) View() string {
 
 func (s *State) PushView(v View) {
 	s.viewStack = append(s.viewStack, v)
-	v.Enter()
+	v.Enter(s.ctx)
 	s.drop = true
 }
 
 func (s *State) PopView() {
-	s.Top().Exit()
+	s.Top().Exit(s.ctx)
 	s.viewStack = s.viewStack[:len(s.viewStack)-1]
 	if len(s.viewStack) == 0 {
 		s.done = true

@@ -1,47 +1,57 @@
 package data
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type server struct {
 	fetch *client
+	ctx   context.Context
 }
 
 type fetchRequest struct {
 	Code string `json:"code"`
 }
 
-func NewServer(fetchClient *client) server {
+func NewServer(ctx context.Context, fetchClient *client) server {
 	return server{
+		ctx:   ctx,
 		fetch: fetchClient,
 	}
 }
 
 func (s server) Fetch(w http.ResponseWriter, req *http.Request) {
-	log.Println("handling fetch")
+	ctx := s.ctx
+	log.Ctx(ctx).UpdateContext(func(c zerolog.Context) zerolog.Context {
+		return c.Str("request-path", req.URL.Path).
+			Str("request-method", req.Method)
+	})
+
 	path := req.URL.Path
 	b, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		serviceError(w, err)
+		serviceError(ctx, w, err)
 	}
 	var fetchReq fetchRequest
 	err = json.Unmarshal(b, &fetchReq)
 
-	resp, err := s.fetch.Fetch(path, fetchReq.Code)
+	resp, err := s.fetch.Fetch(ctx, path, fetchReq.Code)
 	if err != nil {
-		serviceError(w, err)
+		serviceError(ctx, w, err)
 	}
 
 	w.Write(resp)
 }
 
-func serviceError(w http.ResponseWriter, err error) {
-	log.Printf("service error: %s\n", err.Error())
+func serviceError(ctx context.Context, w http.ResponseWriter, err error) {
+	log.Ctx(ctx).Err(err).Msg("service error")
 	w.WriteHeader(500)
 	w.Write([]byte("error: " + err.Error()))
 }
@@ -57,7 +67,7 @@ func withPathParam(prefix string, fn http.HandlerFunc) http.HandlerFunc {
 		}
 
 		path := strings.TrimPrefix(req.URL.Path, prefix)
-		log.Printf("trimmed %s -> %s", req.URL.Path, path)
+		//log.Printf("trimmed %s -> %s", req.URL.Path, path)
 		req.URL.Path = path
 		fn(w, req)
 	}

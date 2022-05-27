@@ -3,13 +3,13 @@ package tui
 import (
 	"context"
 	"fmt"
-	"log"
 	"sshtest/pkg/store"
 	"sshtest/pkg/tui/styles"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rs/zerolog/log"
 )
 
 type SearchKind string
@@ -29,16 +29,16 @@ type fileSearchView struct {
 	search SearchKind
 }
 
-func (b *fileSearchView) Enter() {
+func (b *fileSearchView) Enter(ctx context.Context) {
 	b.input = textinput.New()
 	b.input.Placeholder = "File Name"
 	b.input.Focus()
 	b.search = All
 }
 
-func (b *fileSearchView) Exit() {}
+func (b *fileSearchView) Exit(ctx context.Context) {}
 
-func (b *fileSearchView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
+func (b *fileSearchView) Update(ctx context.Context, msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -61,11 +61,11 @@ func (b *fileSearchView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
 				fn = store.FileTagSearch((b.input.Value()))
 			}
 
-			fv := NewFileView(context.Background(), b.store, 10, fn)
+			fv := NewFileView(b.store, 10, fn)
 			st.PushView(fv)
 			return nil, nil
 		default:
-			log.Printf("updating textinput\n")
+			log.Ctx(ctx).Info().Msg("updating textinput")
 			n, cmd := b.input.Update(msg)
 			b.input = n
 			return b, cmd

@@ -3,10 +3,10 @@ package store
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog/log"
 )
 
 type CursorKey uuid.UUID
@@ -75,7 +75,7 @@ func (c *Client) DestroyCursor(key CursorKey) {
 func AllFiles() CursorFunc {
 	return func(ctx context.Context, tail string, db *sqlx.DB) (*sqlx.Rows, error) {
 		query := "SELECT * FROM files " + tail
-		log.Printf("running query: %s\n", query)
+		log.Ctx(ctx).Info().Msgf("running query: %s", query)
 		return db.QueryxContext(ctx, query)
 	}
 }
@@ -83,7 +83,7 @@ func AllFiles() CursorFunc {
 func FileNameSearch(name string) CursorFunc {
 	return func(ctx context.Context, tail string, db *sqlx.DB) (*sqlx.Rows, error) {
 		query := "SELECT * FROM files WHERE files.name LIKE ? " + tail
-		log.Printf("running query: %s\n", query)
+		log.Ctx(ctx).Info().Msgf("running query: %s", query)
 		return db.QueryxContext(ctx, query, "%"+name+"%")
 	}
 }
@@ -91,7 +91,7 @@ func FileNameSearch(name string) CursorFunc {
 func FileTagSearch(tag string) CursorFunc {
 	return func(ctx context.Context, tail string, db *sqlx.DB) (*sqlx.Rows, error) {
 		query := "SELECT (files.id, files.path, files.name, files.created) FROM files JOIN tags WHERE files.id = tags.id AND tags.value LIKE ? " + tail
-		log.Printf("running query: %s\n", query)
+		log.Ctx(ctx).Info().Msgf("running query: %s", query)
 		return db.QueryxContext(
 			ctx,
 			query,

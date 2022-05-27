@@ -3,7 +3,6 @@ package tui
 import (
 	"context"
 	"fmt"
-	"log"
 	"sshtest/pkg/data"
 	"sshtest/pkg/store"
 	"sshtest/pkg/tui/styles"
@@ -13,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rs/zerolog/log"
 )
 
 type manageView struct {
@@ -68,9 +68,10 @@ func NewManageView(file *data.File, store store.Client) View {
 	}
 }
 
-func (m *manageView) Enter() {
+func (m *manageView) Enter(ctx context.Context) {
 	tags, err := m.store.GetTags(context.Background(), m.file.Id)
 	if err != nil {
+		log.Ctx(ctx).Error().Stack().Err(err).Msg("failed to get tags")
 		m.err = err
 		return
 	}
@@ -78,15 +79,16 @@ func (m *manageView) Enter() {
 
 	access, err := m.store.GetAccessKeys(context.Background(), m.file)
 	if err != nil {
+		log.Ctx(ctx).Error().Stack().Err(err).Msg("failed to get access keys")
 		m.err = err
 		return
 	}
 	m.access = access
 }
 
-func (m *manageView) Exit() {}
+func (m *manageView) Exit(_ context.Context) {}
 
-func (m *manageView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
+func (m *manageView) Update(ctx context.Context, msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -122,8 +124,8 @@ type createStatusView struct {
 	key string
 }
 
-func (c createStatusView) Enter() {}
-func (c createStatusView) Exit()  {}
+func (c createStatusView) Enter(_ context.Context) {}
+func (c createStatusView) Exit(_ context.Context)  {}
 func (c createStatusView) View() []string {
 	if c.err != nil {
 		return []string{fmt.Sprintf("ERROR: %s", c.err.Error())}
@@ -131,7 +133,7 @@ func (c createStatusView) View() []string {
 	return []string{fmt.Sprintf("Created access with key = %s", c.key)}
 }
 
-func (c createStatusView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
+func (c createStatusView) Update(_ context.Context, msg tea.Msg, st *State) (View, tea.Cmd) {
 	return nil, nil
 }
 
@@ -142,13 +144,13 @@ type setTagView struct {
 	store store.Client
 }
 
-func (s *setTagView) Enter() {
+func (s *setTagView) Enter(_ context.Context) {
 	s.input = textinput.New()
 	s.input.Placeholder = "New Tag Name"
 	s.input.Focus()
 }
 
-func (s setTagView) Exit() {}
+func (s setTagView) Exit(_ context.Context) {}
 
 func (s setTagView) View() []string {
 	title := styles.Title(s.box.Style()).Render(fmt.Sprintf("Tag File"))
@@ -160,7 +162,7 @@ func (s setTagView) View() []string {
 	return []string{lipgloss.JoinVertical(lipgloss.Top, title, details, input)}
 }
 
-func (s *setTagView) Update(msg tea.Msg, st *State) (View, tea.Cmd) {
+func (s *setTagView) Update(ctx context.Context, msg tea.Msg, st *State) (View, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.String() == "enter" {
@@ -196,7 +198,6 @@ func makeKeyInternal(id string, path string, duration time.Duration, store store
 		Created:  time.Now(),
 		Until:    time.Now().Add(duration),
 	}
-	log.Printf("creating access key for %s: %s\n", path, key)
 	err := store.CreateAccessKey(&access)
 
 	if err != nil {
